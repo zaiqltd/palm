@@ -37,6 +37,7 @@ import { ApiRoute } from "./agents/api-route.mjs";
 import { AgentWatch, alertsBetween } from "./agents/watch.mjs";
 import { openLog, log, logCrashes } from "./platform/log.mjs";
 import { ScreenFlow, MAX_IN_FLIGHT } from "./screen-flow.mjs";
+import { newChallenge, verifyAssertion, verifyRegistration } from "./webauthn.mjs";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const synthetic = process.env.PALM_SYNTHETIC === "1";
@@ -253,7 +254,7 @@ const protocol = {
 };
 const requestNative = (command, guard, options) => commands.run(() => native.request(command), guard, options);
 const controllerValid = (owner) =>
-  controller === owner && owner.active && owner.ws.readyState === 1 && !!sessions.get(owner.token);
+  controller === owner && owner.active && owner.ws.readyState === 1 && !!sessions.authorized(owner.token, false);
 const mime = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript",
@@ -278,10 +279,10 @@ async function body(req, limit = 16384) {
   }
   return JSON.parse(raw || "{}");
 }
-function setSession(res, s, secure) {
+function setSession(res, s, secure, maxAge = 43200) {
   res.setHeader(
     "Set-Cookie",
-    `palm_session=${s.token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=43200${secure ? "; Secure" : ""}`,
+    `palm_session=${s.token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? "; Secure" : ""}`,
   );
 }
 function securityHeaders(res) {
@@ -293,8 +294,90 @@ function securityHeaders(res) {
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
   );
 }
+function requestToken(req) {
+  return req.headers.authorization ? bearerToken(req) : sessionCookie(req);
+}
+/** The device behind a request, if it may use Palm now (a web pairing must be
+ * unlocked with Face ID). Records use, which keeps a web pairing unlocked. */
 function session(req) {
-  return sessions.get(req.headers.authorization ? bearerToken(req) : sessionCookie(req));
+  return sessions.authorized(requestToken(req));
+}
+/** The device behind a request whatever its lock state (pairing, Face ID). */
+function pairedDevice(req) {
+  return sessions.get(requestToken(req));
+}
+// Face ID requests per web pairing: a minute's worth, then a pause.
+const passkeyAttempts = new Map();
+function passkeyAttempt(s) {
+  const now = Date.now();
+  const recent = (passkeyAttempts.get(s.id) || []).filter((t) => t > now - 60000);
+  if (recent.length >= 20) throw new Error("Too many Face ID attempts. Wait a minute and try again.");
+  recent.push(now);
+  passkeyAttempts.set(s.id, recent);
+}
+/** The web app's Face ID steps: set up the passkey, unlock, lock. */
+async function webPasskeyApi(req, res, url) {
+  const device = pairedDevice(req);
+  if (!device || device.kind !== "web") return json(res, 401, { error: "Pair this phone with your Mac first." });
+  const origin = req.headers.origin;
+  const rpId = new URL(origin).hostname;
+  const state = sessions.webState(device.token);
+  if (url.pathname === "/api/web/lock" && req.method === "POST") {
+    sessions.lock(device.token);
+    return json(res, 200, { ok: true, state: sessions.webState(device.token) });
+  }
+  if (url.pathname === "/api/web/passkey/options" && req.method === "POST") {
+    passkeyAttempt(device);
+    const purpose = (await body(req)).purpose;
+    if (purpose === "register") {
+      if (state !== "setup") throw new Error("Face ID is already set up for this phone.");
+      const challenge = sessions.issueChallenge(device.token, "register", newChallenge());
+      return json(res, 200, {
+        publicKey: {
+          challenge,
+          rp: { id: rpId, name: "Palm" },
+          user: { id: Buffer.from(device.id, "hex").toString("base64url"), name: device.name, displayName: `${device.name} · Palm` },
+          pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+          authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "preferred", userVerification: "required" },
+          attestation: "none",
+          timeout: 120000,
+        },
+      });
+    }
+    if (purpose === "unlock") {
+      if (state === "setup") throw new Error("Set up Face ID for Palm first.");
+      const challenge = sessions.issueChallenge(device.token, "unlock", newChallenge());
+      return json(res, 200, {
+        publicKey: {
+          challenge,
+          rpId,
+          allowCredentials: [{ type: "public-key", id: device.passkey.id, transports: ["internal", "hybrid"] }],
+          userVerification: "required",
+          timeout: 120000,
+        },
+      });
+    }
+    throw new Error("Unknown Face ID step.");
+  }
+  if (url.pathname === "/api/web/passkey/register" && req.method === "POST") {
+    passkeyAttempt(device);
+    if (state !== "setup") throw new Error("Face ID is already set up for this phone.");
+    const challenge = sessions.takeChallenge(device.token, "register");
+    const passkey = verifyRegistration({ credential: (await body(req)).credential, challenge, origin, rpId });
+    await sessions.setPasskey(device.token, passkey);
+    log("web.passkey", { device: device.name });
+    return json(res, 200, { ok: true, state: sessions.webState(device.token) });
+  }
+  if (url.pathname === "/api/web/passkey/unlock" && req.method === "POST") {
+    passkeyAttempt(device);
+    if (state === "setup") throw new Error("Set up Face ID for Palm first.");
+    const challenge = sessions.takeChallenge(device.token, "unlock");
+    const result = verifyAssertion({ credential: (await body(req)).credential, stored: device.passkey, challenge, origin, rpId });
+    sessions.unlock(device.token);
+    await sessions.updateSignCount(device.token, result.signCount);
+    return json(res, 200, { ok: true, state: sessions.webState(device.token) });
+  }
+  return json(res, 404, { error: "Not found." });
 }
 function ownOrigin(req) {
   return checkOrigin(req, origins) && new URL(req.headers.origin).host === req.headers.host;
@@ -669,7 +752,7 @@ async function authenticatedApi(req, res, url, authenticated) {
     return json(res, 200, await requestNative(command, guard));
   }
   if (p === "/api/disconnect" && m === "POST") {
-    const s = session(req);
+    const s = authenticated;
     const revoked = sessions.revoke(s.id);
     if (controller?.token === s.token) stopController(controller, 4001, "Device disconnected");
     if (mediaOwner?.token === s.token) stopMedia(mediaOwner, 4001, "Device disconnected");
@@ -692,8 +775,15 @@ const server = http.createServer(async (req, res) => {
       (!ownOrigin(req) || (!rawUpload && !req.headers["content-type"]?.startsWith("application/json")))
     )
       return json(res, 403, { error: "Request origin rejected." });
-    if (url.pathname === "/api/session")
-      return json(res, 200, { paired: !!session(req), local: isLocal(req), synthetic, ...protocol });
+    if (url.pathname === "/api/session") {
+      const device = pairedDevice(req);
+      const web = device?.kind === "web" ? sessions.webState(device.token) : null;
+      return json(res, 200, {
+        paired: !!device, local: isLocal(req), synthetic, ...protocol,
+        ...(web ? { web: { state: web, name: device.name, expires: device.expires } } : {}),
+      });
+    }
+    if (url.pathname.startsWith("/api/web/") && url.pathname !== "/api/web/pair") return await webPasskeyApi(req, res, url);
 
     // Palm's MCP server calls back here for a running agent. Loopback only,
     // authenticated by the per-task token the broker issued.
@@ -815,7 +905,21 @@ const server = http.createServer(async (req, res) => {
         return json(res, 429, { error: e.message });
       }
     }
+    // The web app on a phone: a durable pairing that Face ID unlocks.
+    if (url.pathname === "/api/web/pair" && req.method === "POST") {
+      const b = await body(req);
+      try {
+        const s = await sessions.pairWeb(b.code, b.name);
+        setSession(res, s, req.headers.origin?.startsWith("https:"), Math.floor((s.expires - Date.now()) / 1000));
+        return json(res, 200, { ok: true, state: "setup", expires: s.expires });
+      } catch (e) {
+        return json(res, 429, { error: e.message });
+      }
+    }
+    // A browser session without Face ID: only on the Mac itself now; phones
+    // pair as web devices above.
     if (url.pathname === "/api/pair" && req.method === "POST") {
+      if (!isLocal(req)) return json(res, 403, { error: "Pair this phone from Palm's web app." });
       const b = await body(req);
       try {
         const s = sessions.pair(b.code, b.name);
@@ -826,8 +930,14 @@ const server = http.createServer(async (req, res) => {
       }
     }
     if (url.pathname.startsWith("/api/")) {
-      const authenticated = session(req);
-      if (!authenticated) return json(res, 401, { error: "Pair this device with your Mac first." });
+      let authenticated = session(req);
+      if (!authenticated) {
+        const device = pairedDevice(req);
+        if (device?.kind === "web" && url.pathname === "/api/disconnect" && req.method === "POST") authenticated = device;
+        else if (device?.kind === "web")
+          return json(res, 423, { error: device.passkey ? "Unlock Palm with Face ID." : "Set up Face ID for Palm first.", locked: true, state: sessions.webState(device.token) });
+        else return json(res, 401, { error: "Pair this device with your Mac first." });
+      }
       return await authenticatedApi(req, res, url, authenticated);
     }
     if (req.method !== "GET" && req.method !== "HEAD") return json(res, 405, { error: "Method not allowed." });
@@ -884,12 +994,12 @@ server.on("upgrade", (req, socket, head) => {
   if (!["/socket", "/events", "/media", "/media-audio"].includes(pathname)) failure = "403 Forbidden";
   else if (!hosts.has(req.headers.host)) failure = "403 Forbidden (host)";
   else if (!ownOrigin(req)) failure = "403 Forbidden (origin)";
-  else if (!s) failure = "401 Unauthorized";
-  else if (["/media", "/media-audio"].includes(pathname) && s.kind !== "native") failure = "403 Forbidden";
+  else if (!s) failure = pairedDevice(req)?.kind === "web" ? "423 Locked" : "401 Unauthorized";
+  else if (["/media", "/media-audio"].includes(pathname) && !["native", "web"].includes(s.kind)) failure = "403 Forbidden";
   // Another device's live screen is never taken over; the Palm app's own
   // older connection is replaced (controlClient). A browser keeps one: two
   // tabs would take it from each other.
-  else if (pathname === "/socket" && controller && !(s.kind === "native" && controller.token === s.token)) failure = "409 Conflict";
+  else if (pathname === "/socket" && controller && !(["native", "web"].includes(s.kind) && controller.token === s.token)) failure = "409 Conflict";
   else if (pathname === "/media" && mediaOwner && mediaOwner.token !== s.token) failure = "409 Conflict";
   else if (pathname === "/media-audio" && (!mediaOwner?.ready || mediaOwner.token !== s.token ||
     req.headers["x-palm-media-session"] !== mediaOwner.id || mediaOwner.audio)) failure = "409 Conflict";
@@ -923,6 +1033,7 @@ function mediaClient(ws, s) {
   const check = setInterval(() => {
     if (mediaOwner !== owner) return;
     if (!sessions.get(s.token)) stopMedia(owner, 4001, "Session expired");
+    else if (!sessions.authorized(s.token, false)) stopMedia(owner, 4003, "Locked");
     else if (Date.now() - lastSeen > 15000) stopMedia(owner, 4000, "Connection timed out");
   }, 3000);
   const send = (message) => { if (ws.readyState === 1) ws.send(JSON.stringify(message)); };
@@ -930,7 +1041,7 @@ function mediaClient(ws, s) {
     let starting = false;
     try {
       lastSeen = Date.now();
-      if (mediaOwner !== owner || !sessions.get(s.token)) return;
+      if (mediaOwner !== owner || !sessions.authorized(s.token)) return;
       if (binary || raw.length > 24000) throw new Error("Invalid media command.");
       const command = JSON.parse(raw);
       if (!command || typeof command !== "object") throw new Error("Invalid media command.");
@@ -1036,7 +1147,7 @@ function mediaAudioClient(ws, owner) {
   }, 1000);
   ws.on("message", async (raw, binary) => {
     try {
-      if (mediaOwner !== owner || owner.audio !== ws || !sessions.get(owner.token)) return;
+      if (mediaOwner !== owner || owner.audio !== ws || !sessions.authorized(owner.token)) return;
       lastSeen = Date.now();
       if (!binary) {
         if (raw.length > 512) throw new Error("Invalid audio control.");
@@ -1082,7 +1193,7 @@ function mediaAudioClient(ws, owner) {
 }
 function forwardMedia(x) {
   const owner = mediaOwner;
-  if (!owner?.streaming || owner.id !== x.mediaSession || !sessions.get(owner.token)) return;
+  if (!owner?.streaming || owner.id !== x.mediaSession || !sessions.authorized(owner.token, false)) return;
   if (x.event === "mediaError") {
     if (owner.ws.readyState === 1) owner.ws.send(JSON.stringify({ event: "media.error", message: x.message }));
     stopMedia(owner, 4000, "Media capture failed"); return;
@@ -1140,6 +1251,7 @@ function eventsClient(ws, s) {
   const opened = Date.now();
   const check = setInterval(() => {
     if (!sessions.get(s.token)) ws.close(4001, "Session expired");
+    else if (!sessions.authorized(s.token, false)) ws.close(4003, "Locked");
     else if (Date.now() - lastSeen > 45000) {
       log("events.silent", { device: s.name, seconds: Math.round((Date.now() - opened) / 1000) });
       ws.terminate();
@@ -1147,6 +1259,7 @@ function eventsClient(ws, s) {
   }, 5000);
   ws.on("message", async (raw, binary) => {
     lastSeen = Date.now();
+    sessions.authorized(s.token);
     let message;
     try {
       if (binary) throw new Error("Send JSON text.");
@@ -1215,7 +1328,7 @@ function controlClient(ws, s, req) {
   // Palm left the screen and the old connection was cut without a goodbye
   // (E2E, 23 September: "Another screen session is still open (409)" for 15 s,
   // then a black screen). The new connection replaces it at once.
-  if (controller && controller.token === s.token && s.kind === "native") {
+  if (controller && controller.token === s.token && ["native", "web"].includes(s.kind)) {
     log("screen.replaced", { device: s.name });
     replaceController(controller);
   }
@@ -1237,6 +1350,7 @@ function controlClient(ws, s, req) {
   const limit = setInterval(() => {
     count = 0;
     if (!sessions.get(s.token)) stopController(owner, 4001, "Session expired");
+    else if (!sessions.authorized(s.token, false)) stopController(owner, 4003, "Locked");
     const flow = owner.flow;
     if (flow && owner.streaming && controllerValid(owner)) {
       const bitrate = flow.tick();
@@ -1256,6 +1370,7 @@ function controlClient(ws, s, req) {
     let requestId;
     try {
       lastSeen = Date.now();
+      sessions.authorized(s.token);
       if (!controllerValid(owner)) return stopController(owner, 4001, "Session expired");
       if (++count > 240) {
         stopController(owner, 4008, "Too many commands");

@@ -182,6 +182,16 @@ run("/usr/bin/codesign", [
   ...(identity === "-" ? [] : ["--options", "runtime", "--timestamp"]),
   path.join(runtime, "build/bin/palm-pty"),
 ]);
+// Frameworks inside the companion (WebRTC) first, with the same identity:
+// macOS refuses to load a framework signed by another team (or ad hoc) into
+// the signed companion, and the screen then never starts.
+const companionFrameworks = path.join(runtime, "build/Palm Companion.app/Contents/Frameworks");
+for (const framework of await readdir(companionFrameworks).catch(() => []))
+  run("/usr/bin/codesign", [
+    "--force", "--sign", identity,
+    ...(identity === "-" ? [] : ["--options", "runtime", "--timestamp"]),
+    path.join(companionFrameworks, framework),
+  ]);
 run("/usr/bin/codesign", [
   "--force", "--sign", identity,
   ...(identity === "-" ? [] : ["--options", "runtime", "--timestamp"]),

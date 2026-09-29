@@ -1,0 +1,400 @@
+/* The live Mac screen (PalmRemoteView): the picture uses the whole screen and
+   the controls float over it on darkened glass. */
+
+.remote {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #000;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.remote-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  background: #000;
+}
+.remote-content {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  pointer-events: none;
+}
+.remote-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+.remote-cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+  z-index: 3;
+}
+.remote-overview {
+  position: absolute;
+  width: 100px;
+  height: 66px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+  z-index: 4;
+}
+.remote-feedback {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.tap-ring {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.18);
+  animation: tap-ring 0.38s ease-out forwards;
+}
+.tap-ring.accent {
+  border-color: rgba(237, 237, 237, 0.9);
+  background: rgba(237, 237, 237, 0.18);
+}
+@keyframes tap-ring {
+  from { transform: scale(0.5); opacity: 1; }
+  to { transform: scale(1.35); opacity: 0; }
+}
+
+/* Start again, or "Opening on your Mac". */
+.remote-stopped {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(340px, calc(100% - 48px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  z-index: 6;
+}
+
+/* Portrait: a top bar and a bottom bar. */
+.remote-top {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: calc(var(--sat) + 2px);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+.remote-top > * {
+  pointer-events: auto;
+}
+.remote-back {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex: none;
+}
+.remote-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  max-width: 100%;
+}
+.remote-status .status-line,
+.remote-status .latency {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.remote-status .latency {
+  font-variant-numeric: tabular-nums;
+}
+.remote-status .name {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+.remote-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 460px;
+  padding: 8px 12px;
+  border-radius: 16px;
+  color: #fff;
+  font-size: 12px;
+  line-height: 16px;
+  margin-top: 6px;
+}
+.remote-error button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.remote-done {
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 24px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  margin-left: auto;
+  flex: none;
+}
+.remote-bottom {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: calc(var(--sab) + 10px);
+  display: flex;
+  justify-content: center;
+  z-index: 10;
+}
+.control-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 999px;
+}
+.control-bar button,
+.control-rail button {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex: none;
+}
+.control-bar button:disabled,
+.control-rail button:disabled {
+  opacity: 0.35;
+}
+.mode-switch {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.control-rail .mode-switch {
+  flex-direction: column;
+}
+.mode-switch button {
+  border-radius: 999px;
+}
+.mode-switch button.selected {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.stop-button {
+  color: var(--red) !important;
+}
+
+/* Landscape: every control in one rail down the side, tucked away to a tab. */
+.control-rail {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 999px;
+}
+.control-rail .rail-spacer {
+  flex: 1;
+  min-height: 2px;
+}
+.rail-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #bfbfbf;
+  font-variant-numeric: tabular-nums;
+}
+.rail-tab {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 72px;
+  border-radius: 999px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: #fff;
+  z-index: 10;
+}
+.remote-flash {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  pointer-events: none;
+  animation: fade-in 0.15s ease-out;
+  white-space: nowrap;
+}
+
+/* Copy / Paste / Select All by the finger. */
+.edit-bar {
+  position: absolute;
+  z-index: 12;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+}
+.edit-bar button {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}
+.edit-bar button:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* The hidden field that brings up the iPhone keyboard. */
+.key-catcher {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0.02;
+  border: 0;
+  padding: 0;
+  resize: none;
+  font-size: 16px; /* 16px or more: iOS does not zoom the page */
+  color: transparent;
+  background: transparent;
+  caret-color: transparent;
+  z-index: -1;
+}
+.keybar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 52px;
+  padding: 6px calc(10px + var(--sar)) 6px calc(0px + var(--sal));
+  background: rgba(38, 38, 42, 0.86);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+.keybar-scroll {
+  flex: 1;
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 4px 0 10px;
+  touch-action: pan-x;
+}
+.keybar-scroll::-webkit-scrollbar {
+  display: none;
+}
+.keybar-fixed {
+  display: flex;
+  gap: 5px;
+}
+.key {
+  min-width: 40px;
+  height: 40px;
+  padding: 4px 8px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.key:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+.key.latched {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Apps sheet shortcut tiles. */
+.shortcut-tiles {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+}
+.shortcut-tiles button {
+  flex: 1;
+  min-height: 64px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.dock-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.7);
+}

@@ -41,7 +41,7 @@ const remote = option("--remote", null);
 // in the demo VM never started streaming.
 const remoteTests = ["testRemote1WholeMac"];
 const filmEvents = [];
-const demoTests = ["testDemo1AgentsAndApproval", "testDemo2Screen", "testDemo3EveryAgent", "testDemo4Files", "testDemo5Assistant", "testDemo6Terminal"];
+const demoTests = ["testDemo1AgentsAndApproval", "testDemo2Screen", "testDemo3EveryAgent", "testDemo4Files", "testDemo5Assistant", "testDemo6Terminal", "testDemo7VoiceAgent"];
 // xcodebuild needs Xcode itself; a shell may point DEVELOPER_DIR at the
 // Command Line Tools (for git and python3), so it is not inherited here.
 const developerDir = process.env.PALM_XCODE_DEVELOPER_DIR || "/Applications/Xcode.app/Contents/Developer";
@@ -79,7 +79,14 @@ const host = spawn(process.execPath, [path.join(root, "server/index.mjs")], {
     PALM_PORT: String(port),
     PALM_PREVIEW_SLOTS: slots.map((local, i) => `${18444 + i}:${local}`).join(","),
     ...(demo
-      ? { PALM_DEMO: "1", PALM_COMPUTER_NAME: "MacBook Pro", PALM_DEMO_SCREENS: demoScreens, PALM_SYNTHETIC_SCREEN: demoScreen }
+      ? {
+          PALM_DEMO: "1",
+          PALM_COMPUTER_NAME: "MacBook Pro",
+          PALM_DEMO_SCREENS: demoScreens,
+          PALM_SYNTHETIC_SCREEN: demoScreen,
+          // What the demo's voice beat "hears".
+          PALM_SYNTHETIC_TRANSCRIPT: "Add a dark mode switch to Settings, then run the tests",
+        }
       : {}),
   },
   stdio: ["ignore", "pipe", "pipe"],

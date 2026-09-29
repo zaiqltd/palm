@@ -3,8 +3,8 @@
   "short_name": "Palm",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#161616",
-  "theme_color": "#161616",
+  "background_color": "#161618",
+  "theme_color": "#161618",
   "icons": [
     {
       "src": "/icon.svg",

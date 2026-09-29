@@ -1,0 +1,1919 @@
+/* Palm's iPhone app, in CSS: the same graphite look (PalmStyle), iOS 26
+   metrics (measured from the app's own screenshots, in points) and Liquid
+   Glass for floating controls. Sizes are CSS px = iOS points. */
+
+:root {
+  --background: #161618;
+  --panel: #222225;
+  --raised: #2e2e32;
+  --line: rgba(255, 255, 255, 0.1);
+  --separator: #3b3b3f;
+  --accent: #ededed;
+  --muted: #98989e;
+  --on-accent: #121212;
+  --switch-tint: #8f8f8f;
+  --success: #30d158;
+  --orange: #ff9f0a;
+  --red: #ff453a;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Helvetica Neue", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  /* Safe areas (the Dynamic Island, the home indicator); the test harness
+     can set them to an iPhone's so screenshots line up. */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  /* Liquid Glass over Palm's dark background reads as the panel colour
+     with a hairline rim, brightest at its edge (as the search field). */
+  --glass-fill: rgba(255, 255, 255, 0.053);
+  --rim:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.068),
+    inset 0 0 0 0.667px rgba(255, 255, 255, 0.045),
+    inset 0 0 0 0.333px rgba(255, 255, 255, 0.04);
+  --tabbar-h: 62px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--background);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.294;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+body {
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
+}
+#root {
+  height: 100%;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:disabled {
+  cursor: default;
+}
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+svg.icon {
+  display: block;
+  flex: none;
+}
+
+/* ---- Text styles (Dynamic Type "Large") ---- */
+/* SwiftUI text styles. One line of SwiftUI text is the font's own height
+   (1.193 em); wrapped lines sit the style's leading apart. As a block, the
+   leading as line height with half the difference taken off above and below
+   gives both. */
+.t-large-title { font-size: 34px; line-height: 41px; font-weight: 700; margin-block: -0.22px; }
+.t-title { font-size: 28px; line-height: 34px; margin-block: -0.3px; }
+.t-title2 { font-size: 22px; line-height: 28px; margin-block: -0.88px; }
+.t-title3 { font-size: 20px; line-height: 25px; margin-block: -0.57px; }
+.t-headline { font-size: 17px; line-height: 22px; font-weight: 600; margin-block: -0.855px; }
+.t-body { font-size: 17px; line-height: 22px; margin-block: -0.855px; }
+.t-callout { font-size: 16px; line-height: 21px; margin-block: -0.96px; }
+.t-subheadline { font-size: 15px; line-height: 20px; margin-block: -1.05px; }
+.t-footnote { font-size: 13px; line-height: 18px; margin-block: -1.245px; }
+.t-caption { font-size: 12px; line-height: 16px; margin-block: -0.84px; }
+.t-caption2 { font-size: 11px; line-height: 13px; margin-block: 0.06px; }
+.w-medium { font-weight: 500; }
+.w-semibold { font-weight: 600; }
+.w-bold { font-weight: 700; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); }
+.warning { color: var(--orange); }
+
+/* ---- Liquid Glass ---- */
+.glass {
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  box-shadow: var(--rim);
+}
+/* Over the live Mac picture: darkened so white icons read on white windows. */
+.video-glass {
+  background: rgba(0, 0, 0, 0.62);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+}
+
+/* ---- App frame ---- */
+.app {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--background);
+}
+.tab-page {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+.tab-page.selected {
+  display: block;
+}
+.stack-screen {
+  position: absolute;
+  inset: 0;
+  /* Each screen its own layer: a pushed screen covers its parent's bar. */
+  isolation: isolate;
+  background: var(--background);
+  display: flex;
+  flex-direction: column;
+}
+.stack-screen.pushed {
+  animation: push-in 0.32s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+@keyframes push-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding-bottom: calc(var(--sab) + var(--tabbar-h) + 34px);
+}
+.scroll.no-tabbar {
+  padding-bottom: calc(var(--sab) + 24px);
+}
+
+/* ---- Navigation bar ---- */
+.navbar {
+  flex: none;
+  position: relative;
+  z-index: 5;
+  padding-top: var(--sat);
+  min-height: calc(var(--sat) + 44px);
+}
+.navbar-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+}
+.navbar .title-block {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+/* The large title sits at the top of the bar, its subtitle straight under it. */
+.navbar:not(.inline) .title-block {
+  align-self: flex-start;
+  justify-content: flex-start;
+  padding-top: 2.1px;
+}
+.navbar .large-title {
+  font-size: 22px;
+  line-height: 26px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.navbar .subtitle {
+  font-size: 11.25px;
+  line-height: 13px;
+  margin-top: 0.4px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.navbar.inline .title-block {
+  position: absolute;
+  left: 76px;
+  right: 76px;
+  top: 0;
+  bottom: 0;
+  align-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+.navbar.inline .title-block > * {
+  pointer-events: auto;
+}
+.navbar .inline-title {
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 100%;
+}
+.navbar .inline-title-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.navbar .title-chevron {
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.14);
+  display: inline-grid;
+  place-items: center;
+}
+.navbar-leading,
+.navbar-trailing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 1;
+}
+.navbar-trailing {
+  margin-left: auto;
+}
+.navbar.inline .navbar-trailing {
+  margin-left: auto;
+}
+
+/* A round glass button (44 pt) and a glass capsule of several buttons. */
+.glass-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  color: #e3e3e6;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+/* The back chevron sits a little left of centre, as in the app. */
+.back-button {
+  color: #f4f4f7;
+}
+.back-button svg {
+  margin-left: -3px;
+}
+.glass-button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+.glass-button:disabled {
+  opacity: 0.4;
+}
+.glass-group {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  border-radius: 22px;
+  padding: 0 4px;
+}
+.glass-group > button {
+  height: 44px;
+  min-width: 44px;
+  padding: 0 8px;
+  display: grid;
+  place-items: center;
+}
+.glass-text-button {
+  height: 44px;
+  border-radius: 22px;
+  padding: 0 18px;
+  font-size: 17px;
+  font-weight: 500;
+}
+.glass-text-button.prominent {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.glass-text-button:disabled {
+  opacity: 0.4;
+}
+
+/* ---- Search field (in the title area) ---- */
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  margin: 11px 20px 15px;
+  padding: 0 14px;
+  border-radius: 22px;
+  background: var(--panel);
+  /* A hairline rim, brightest at the edge. */
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.068),
+    inset 0 0 0 0.667px rgba(255, 255, 255, 0.045),
+    inset 0 0 0 0.333px rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+}
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 17px;
+}
+.search-field input::placeholder {
+  color: #a7a7a8;
+}
+.search-field .search-glyph {
+  flex: none;
+  color: #f4f4f4;
+  margin-left: 0;
+}
+.search-field .clear {
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.28);
+  color: var(--background);
+  display: grid;
+  place-items: center;
+}
+
+/* ---- Inset grouped lists ---- */
+.list {
+  padding: 0 20px;
+}
+.section {
+  margin-bottom: 0;
+}
+.section + .section {
+  margin-top: 20px;
+}
+.section-header {
+  padding: 7px 20px 9.15px;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.section-body {
+  background: var(--panel);
+  border-radius: 26px;
+  overflow: hidden;
+}
+.section-body.clear {
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+}
+.section-footer {
+  padding: 8px 20px 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted);
+}
+/* Rows follow SwiftUI's inset grouped List: 15 pt above and below the
+   content, 44 pt at least; the separator is drawn over the row's last point. */
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 44px;
+  padding: 15px 20px;
+  text-align: left;
+  color: #fff;
+  font-size: 17px;
+  line-height: normal;
+}
+/* A separator under every row but the last, starting where the row's text
+   starts (SwiftUI's listRowSeparatorLeading), as --separator-inset. */
+.row-group {
+  position: relative;
+}
+.section-body > :is(.row, .row-group):not(:last-child)::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: var(--separator-inset, 20px);
+  right: 20px;
+  height: 1px;
+  background: var(--separator);
+  pointer-events: none;
+}
+button.row:active:not(:disabled),
+.row.pressable:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+button.row:disabled {
+  opacity: 0.45;
+}
+.row .row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.row .row-title {
+  font-size: 17px;
+  line-height: 22px;
+  margin: -0.855px 0;
+}
+/* A row whose only text is subheadline (a window on the Screen tab). */
+.row .row-title.t-subheadline {
+  font-size: 15px;
+  line-height: 20px;
+  margin: -1.05px 0;
+}
+.row .row-detail {
+  font-size: 15px;
+  line-height: 20px;
+  margin: -1.05px 0;
+  color: var(--muted);
+}
+.row .row-value {
+  color: var(--muted);
+  font-size: 17px;
+  text-align: right;
+  flex: none;
+  max-width: 60%;
+}
+.row .chevron {
+  color: var(--muted);
+  flex: none;
+}
+.row .chevron.spaced {
+  margin-left: 22px;
+}
+.row .row-icon {
+  width: 28px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+/* A small icon button at a row's end (remove a saved folder name). */
+.row-trailing-button {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  margin: -8px -8px -8px 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.row.destructive {
+  color: var(--red);
+}
+.row.accent {
+  color: var(--accent);
+}
+
+/* A window under its app on the Screen tab: the glyph in a 40 pt column. */
+.row.window-row {
+  gap: 12px;
+}
+.window-glyph {
+  flex: none;
+  width: 40px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+/* Icon tiles in rows (the Screen tab's "Whole Mac screen", app icons). */
+.tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--raised);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.app-icon {
+  flex: none;
+  object-fit: contain;
+}
+.app-icon.letter {
+  display: grid;
+  place-items: center;
+  background: var(--raised);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ---- Buttons ---- */
+.primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 17px;
+  font-weight: 600;
+  transition: opacity 0.12s, transform 0.12s;
+}
+.primary-button:active:not(:disabled) {
+  opacity: 0.78;
+  transform: scale(0.985);
+}
+.primary-button:disabled {
+  opacity: 0.38;
+}
+.secondary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--raised);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 500;
+}
+.secondary-button:active:not(:disabled) {
+  opacity: 0.65;
+}
+.secondary-button:disabled {
+  opacity: 0.38;
+}
+.capsule-button {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ---- Cards, notices ---- */
+.card {
+  background: var(--panel);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  padding: 20px;
+}
+.notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 15px;
+  border-radius: 16px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 20px;
+}
+.notice.warning {
+  color: var(--orange);
+}
+.notice svg {
+  margin-top: 2px;
+}
+
+/* ---- Switch (51 x 31) ---- */
+.switch {
+  position: relative;
+  width: 51px;
+  height: 31px;
+  flex: none;
+  border-radius: 16px;
+  background: rgba(120, 120, 128, 0.32);
+  transition: background 0.2s;
+}
+.switch.on {
+  background: var(--switch-tint);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 3px 1px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+.switch.on::after {
+  transform: translateX(20px);
+}
+.switch:disabled {
+  opacity: 0.4;
+}
+
+/* ---- Tab bar (floating Liquid Glass capsule) ---- */
+.tabbar {
+  position: fixed;
+  left: 21px;
+  right: 21px;
+  /* 21 pt above the bottom on an iPhone with a home indicator. */
+  bottom: max(8px, calc(var(--sab) - 13px));
+  height: var(--tabbar-h);
+  border-radius: 31px;
+  display: flex;
+  align-items: stretch;
+  padding: 4.3px 7.7px;
+  z-index: 20;
+}
+/* Five items 76.6 pt apart; the glyph centred 19.5 pt down, the label's
+   baseline 44.4 pt down; the selected one on a lighter capsule a little
+   wider than the item. */
+.tabbar button {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 5.5px;
+  color: #f4f4f7;
+}
+.tabbar button::before {
+  content: "";
+  position: absolute;
+  inset: 0 -2.9px;
+  border-radius: 24px;
+  background: #434346;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+.tabbar button.selected {
+  color: #e5e5e8;
+}
+.tabbar button.selected::before {
+  opacity: 1;
+}
+.tabbar .tab-glyph {
+  position: relative;
+  height: 28px;
+  display: grid;
+  place-items: center;
+}
+.tabbar .tab-label {
+  position: relative;
+  margin-top: 1.1px;
+  font-size: 10px;
+  line-height: normal;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ---- Toasts and the root error ---- */
+.toast-layer {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  z-index: 40;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 20px;
+  color: #fff;
+  animation: toast-in 0.2s ease-out;
+}
+.toast .toast-text {
+  flex: 1;
+  min-width: 0;
+}
+.toast .dismiss {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+.test-host-label {
+  align-self: center;
+  pointer-events: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--orange);
+  color: var(--on-accent);
+  font-size: 11px;
+  line-height: normal;
+  font-weight: 600;
+}
+.floating-notice {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ---- Sheets ---- */
+.sheet-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.32);
+  animation: fade-in 0.2s ease-out;
+}
+.sheet-shade.passthrough {
+  background: transparent;
+  pointer-events: none;
+}
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  background: #1c1c1e;
+  border-radius: 38px 38px 0 0;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.45);
+  animation: sheet-up 0.34s cubic-bezier(0.2, 0.9, 0.25, 1);
+  touch-action: none;
+  max-height: calc(100% - var(--sat) - 10px);
+}
+.sheet.floating {
+  left: 8px;
+  right: 8px;
+  bottom: calc(var(--sab) + 8px);
+  border-radius: 38px;
+}
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+.sheet .grabber {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.28);
+  margin: 6px auto 0;
+  flex: none;
+}
+.sheet-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 64px;
+  padding: 0 16px;
+  position: relative;
+}
+.sheet-header .sheet-title {
+  position: absolute;
+  left: 90px;
+  right: 90px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sheet-header .sheet-leading,
+.sheet-header .sheet-trailing {
+  display: flex;
+  gap: 8px;
+  z-index: 1;
+}
+.sheet-header .sheet-trailing {
+  margin-left: auto;
+}
+.sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: calc(var(--sab) + 20px);
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+.sheet .list {
+  padding: 0 16px;
+}
+
+/* ---- Menus (iOS 26 pull-down, glass) ---- */
+.menu-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+.menu {
+  position: fixed;
+  z-index: 81;
+  min-width: 220px;
+  max-width: 300px;
+  border-radius: 26px;
+  padding: 8px 0;
+  animation: menu-in 0.18s ease-out;
+  transform-origin: top right;
+}
+@keyframes menu-in {
+  from { opacity: 0; transform: scale(0.9); }
+}
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 20px;
+  font-size: 17px;
+  text-align: left;
+}
+.menu button:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+.menu button.destructive {
+  color: var(--red);
+}
+.menu .menu-divider {
+  height: 8px;
+}
+.menu .menu-check {
+  width: 20px;
+  flex: none;
+}
+
+/* ---- Dialogs (alerts, confirmation) ---- */
+.dialog-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  animation: fade-in 0.18s;
+}
+.dialog {
+  width: min(300px, 100%);
+  border-radius: 34px;
+  padding: 20px 20px 16px;
+  text-align: center;
+}
+.dialog h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.dialog p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 18px;
+  color: rgba(255, 255, 255, 0.8);
+}
+.dialog .dialog-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dialog .dialog-buttons.pair {
+  flex-direction: row;
+}
+.dialog .dialog-buttons button {
+  flex: 1;
+  height: 48px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 17px;
+  font-weight: 500;
+}
+.dialog .dialog-buttons button.destructive {
+  color: var(--red);
+}
+.dialog .dialog-buttons button.default {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.dialog input {
+  width: 100%;
+  height: 40px;
+  margin: 0 0 14px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 15px;
+}
+
+/* ---- Spinner (iOS activity indicator) ---- */
+.spinner {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  animation: spin 0.8s steps(8) infinite;
+}
+.spinner.large {
+  width: 37px;
+  height: 37px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Content unavailable ---- */
+.unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 40px 24px;
+  color: var(--muted);
+}
+.unavailable h3 {
+  margin: 4px 0 0;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 700;
+  color: #fff;
+}
+.unavailable p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+/* ---- Privacy shield (Palm in the background) ---- */
+.privacy-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--background);
+  display: grid;
+  place-items: center;
+}
+.privacy-shield .inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* Palm's hand on its graphite tile. */
+.palm-mark {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(to bottom, #454545, #121212);
+  color: #fff;
+  flex: none;
+}
+.palm-mark svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+/* Text fields in forms (pairing). */
+.field {
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  outline: 0;
+  border-radius: 12px;
+  background: var(--background);
+  font-size: 17px;
+}
+.field::placeholder {
+  color: rgba(152, 152, 158, 0.75);
+}
+
+/* ======== Screens ported after the Screen tab ======== */
+
+/* The phone keyboard: --kb is its height (App tracks the visual viewport). */
+:root {
+  --kb: 0px;
+}
+.keyboard-open .tabbar {
+  display: none;
+}
+.selectable {
+  user-select: text;
+  -webkit-user-select: text;
+}
+.clamp-1,
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.clamp-1 { -webkit-line-clamp: 1; }
+.clamp-2 { -webkit-line-clamp: 2; }
+.row.column {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.plain-link {
+  display: block;
+  margin: 0 auto 10px;
+  padding: 6px 12px;
+  color: var(--accent);
+}
+.placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+.icon-button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #fff;
+}
+
+/* Small capsule buttons inside rows and cards (SwiftUI .bordered). */
+.capsule-button,
+.card-action {
+  flex: none;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 17px;
+  background: var(--raised);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.capsule-button.prominent,
+.card-action.prominent {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.capsule-button.destructive,
+.card-action.destructive {
+  color: var(--red);
+}
+.capsule-button:disabled,
+.card-action:disabled {
+  opacity: 0.45;
+}
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 20px 12px;
+  scrollbar-width: none;
+}
+.row-input,
+.row-textarea {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 17px;
+}
+.row-textarea {
+  resize: none;
+  font-family: var(--font);
+  line-height: 22px;
+}
+.sheet-footer {
+  padding: 12px 20px calc(var(--sab) + 12px);
+  background: var(--panel);
+}
+
+/* Status chips (Working, Needs you, Done). */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.provider-badge {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--raised);
+  display: grid;
+  place-items: center;
+  color: #fff;
+}
+
+/* ---- Mac ---- */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 28px;
+  background: transparent;
+}
+.slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--fill), rgba(255, 255, 255, 0.18) var(--fill));
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -11px;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.slider-row {
+  gap: 12px;
+}
+.slider-row.column {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.slider-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.row.dev-server {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.dev-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  flex: none;
+}
+.dev-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
+}
+.dev-actions .capsule-button {
+  height: 30px;
+  font-size: 13px;
+}
+.log-view {
+  margin: 0 12px calc(var(--sab) + 12px);
+  padding: 10px;
+  border-radius: 12px;
+  background: #000;
+  font: 11px/1.35 var(--mono);
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ---- Files ---- */
+.bridge {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.bridge-button {
+  flex: 1;
+  min-height: 96px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  color: #fff;
+}
+.bridge-icon {
+  width: 30px;
+  height: 30px;
+  padding: 3px;
+  border-radius: 15px;
+  background: #fff;
+  color: var(--panel);
+}
+.file-glyph {
+  flex: none;
+  width: 28px;
+  display: grid;
+  place-items: center;
+}
+.text-preview {
+  margin: 0 16px calc(var(--sab) + 16px);
+  font: 12px/1.4 var(--mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ---- Terminal ---- */
+.terminal-screen .terminal-host {
+  flex: 1;
+  min-height: 0;
+  padding: 0 4px;
+  background: var(--background);
+}
+.terminal-screen .xterm {
+  height: 100%;
+}
+.terminal-screen .xterm-viewport {
+  background: var(--background) !important;
+}
+.terminal-status {
+  padding: 8px 16px;
+  background: var(--panel);
+}
+.term-keybar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  height: 46px;
+  padding: 0 4px;
+  background: rgba(34, 34, 37, 0.96);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 -0.5px 0 rgba(255, 255, 255, 0.12);
+}
+.term-keybar .keys {
+  flex: 1;
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.term-keybar button {
+  flex: none;
+  min-width: 38px;
+  height: 36px;
+  margin: 0 2px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font: 15px var(--mono);
+  display: grid;
+  place-items: center;
+}
+.term-keybar button.latched {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.term-keybar button.fixed {
+  background: transparent;
+}
+.voice-dock {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--sab) + 12px);
+  z-index: 26;
+  display: flex;
+  justify-content: center;
+}
+.voice-error {
+  display: block;
+  margin: 0 16px 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--panel);
+  text-align: left;
+}
+
+/* ---- Camera and mic ---- */
+.media-screen {
+  padding: 16px 16px calc(var(--sab) + var(--tabbar-h) + 34px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.media-picture {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+.media-picture canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.media-off {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.media-status > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--separator);
+}
+.media-status > div:last-child {
+  border-bottom: 0;
+}
+.media-status .label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.media-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.media-buttons > * {
+  width: auto;
+  flex: 1;
+}
+
+/* ---- Agent watch banner ---- */
+.watch-banner {
+  position: fixed;
+  top: calc(var(--sat) + 58px);
+  left: 12px;
+  right: 12px;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px 8px 14px;
+  border-radius: 18px;
+  animation: toast-in 0.2s ease-out;
+}
+.watch-banner .text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.watch-banner .dismiss {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+/* ---- Assistant ---- */
+.assistant-scroll {
+  padding: 12px 16px calc(var(--sab) + var(--tabbar-h) + 110px);
+}
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.intro p {
+  margin: 0;
+}
+.suggestion {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--panel);
+  color: #fff;
+  text-align: left;
+}
+.exchange {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.exchange .request {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 9px 14px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: var(--on-accent);
+  white-space: pre-wrap;
+}
+.exchange .reply {
+  white-space: pre-wrap;
+}
+.assistant-waiting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.assistant-composer,
+.task-view .composer {
+  position: relative;
+  z-index: 4;
+  flex: none;
+  padding: 8px 0 max(calc(var(--sab) + var(--tabbar-h) + 29px), calc(var(--kb) + 8px));
+  background: var(--background);
+}
+.assistant-composer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 0 12px;
+}
+.composer-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  max-height: 140px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 20px;
+  outline: 0;
+  resize: none;
+  background: var(--panel);
+  color: #fff;
+  font: 17px/20px var(--font);
+}
+.task-view .composer-input {
+  min-height: 44px;
+  padding: 12px 14px;
+  border-radius: 22px;
+}
+.send-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.send-button:disabled {
+  background: var(--raised);
+  color: var(--muted);
+}
+
+/* Result cards. */
+.assistant-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel);
+}
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.card-actions:empty {
+  display: none;
+}
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--raised);
+  color: #fff;
+  text-align: left;
+}
+.brief {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+/* ---- Agents ---- */
+.agents-screen .navbar.inline .title-block {
+  gap: 0;
+}
+.strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+}
+.strip-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.strip-scroll::-webkit-scrollbar {
+  display: none;
+}
+.chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: var(--raised);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}
+.chip.selected {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.chip.plus {
+  width: 38px;
+  padding: 0;
+  justify-content: center;
+}
+.chip .dot {
+  width: 7px;
+  height: 7px;
+}
+.chip-title {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agents-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.agents-body > .scroll {
+  flex: 1;
+}
+.task-holder {
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+}
+.row.task-row {
+  align-items: flex-start;
+  gap: 12px;
+}
+.task-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.task-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.task-title {
+  flex: 1;
+  min-width: 0;
+}
+.task-top .t-caption {
+  flex: none;
+  padding-top: 2px;
+}
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.task-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.task-toolbar {
+  position: fixed;
+  top: var(--sat);
+  right: 20px;
+  z-index: 6;
+  height: 44px;
+  display: flex;
+  gap: 8px;
+}
+.task-toolbar .stop {
+  color: var(--red);
+}
+.task-error {
+  padding: 8px 14px;
+  background: var(--panel);
+}
+.watch-screen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--panel);
+  color: #fff;
+  text-align: left;
+}
+.watch-screen > span:first-child {
+  flex: 1;
+}
+.watch-pill {
+  padding: 6px 14px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+.chat {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 14px 12px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.task-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+.task-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.files-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.working-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bubble-line {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.bubble {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: var(--raised);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.attachment-line,
+.notice-line {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.notice-line svg {
+  flex: none;
+  margin-top: 1px;
+}
+.markdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.markdown p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.markdown code {
+  font: 0.88em var(--mono);
+  padding: 1px 4px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.markdown a {
+  color: var(--accent);
+}
+.code-block,
+.tool-output,
+.approval-detail {
+  margin: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  font: 12px/1.45 var(--mono);
+  overflow-x: auto;
+  white-space: pre;
+}
+.tool-row {
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+.tool-row.expanded {
+  background: var(--panel);
+}
+.tool-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  color: #fff;
+}
+.tool-icon {
+  flex: none;
+  width: 18px;
+  display: grid;
+  place-items: center;
+  padding-top: 1px;
+}
+.tool-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tool-text .mono {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.tool-output {
+  margin-top: 6px;
+  max-height: 220px;
+  overflow: auto;
+  color: var(--muted);
+}
+.approval {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px transparent;
+}
+.approval.pending {
+  box-shadow: inset 0 0 0 1px var(--orange);
+}
+.approval-detail {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #fff;
+}
+.approval-buttons {
+  display: flex;
+  gap: 8px;
+}
+.agent-note {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--panel);
+}
+.turn-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.turn-line span:first-child,
+.turn-line span:last-child {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.attachment-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 6px;
+  width: 100%;
+}
+.sheet .attachment-bar {
+  padding: 0;
+}
+.attachment-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+.attachment-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: var(--raised);
+}
+.attachment-buttons {
+  display: flex;
+  gap: 14px;
+}
+.attachment-buttons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}

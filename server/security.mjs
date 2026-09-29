@@ -14,6 +14,11 @@ import path from "node:path";
 
 const browserLifetime = 12 * 3600000;
 const nativeLifetime = 30 * 24 * 3600000;
+// A web pairing unlocks with Face ID (a passkey) and locks again after ten
+// minutes without use, or a day after unlocking.
+export const webIdleLock = 10 * 60000;
+export const webUnlockLimit = 24 * 3600000;
+const durableKinds = new Set(["native", "web"]);
 const tokenHash = (token) => createHash("sha256").update(token).digest("hex");
 
 export async function writePrivateJSON(file, value) {
@@ -56,6 +61,11 @@ export class Sessions {
     this.now = now;
     this.file = file;
     this.sessions = new Map();
+    // Web pairings: when each was unlocked with Face ID and last used, and
+    // the one outstanding passkey challenge (by token hash; memory only, so a
+    // Palm restart locks every web pairing).
+    this.unlocks = new Map();
+    this.challenges = new Map();
     this.pendingRevocations = new Map();
     this.code = null;
     this.attempts = [];
@@ -95,10 +105,11 @@ export class Sessions {
           !d ||
           !/^[a-f0-9]{16}$/.test(d.id) ||
           !/^[a-f0-9]{64}$/.test(d.tokenHash) ||
-          d.kind !== "native" ||
+          !durableKinds.has(d.kind) ||
           typeof d.name !== "string" ||
           d.name.length > 50 ||
-          !Number.isSafeInteger(d.expires)
+          !Number.isSafeInteger(d.expires) ||
+          (d.kind === "web" && d.passkey != null && !validPasskey(d.passkey))
         )
           throw new Error("Palm device storage is invalid.");
         if (d.expires > now())
@@ -107,7 +118,8 @@ export class Sessions {
             tokenHash: d.tokenHash,
             name: d.name,
             expires: d.expires,
-            kind: "native",
+            kind: d.kind,
+            ...(d.kind === "web" ? { passkey: d.passkey ?? null } : {}),
           });
       }
     } catch (error) {
@@ -123,7 +135,7 @@ export class Sessions {
     const snapshot = JSON.stringify({
       version: 1,
       devices: [...this.sessions.values()].filter(
-        (s) => s.kind === "native" && s.expires > this.now(),
+        (s) => durableKinds.has(s.kind) && s.expires > this.now(),
       ),
     });
     const write = async () => {
@@ -164,10 +176,10 @@ export class Sessions {
     this.consumeCode(value);
     return this.create(name);
   }
-  async pairNative(value, name = "iPhone") {
+  async pairNative(value, name = "iPhone", kind = "native") {
     if (!this.file) throw new Error("Durable device pairing is unavailable.");
     this.consumeCode(value);
-    const session = this.create(name, "native");
+    const session = this.create(name, kind);
     try {
       await this.persist();
     } catch {
@@ -178,6 +190,10 @@ export class Sessions {
     }
     return session;
   }
+  /** A phone's browser (the web app): durable like the app, locked until Face ID. */
+  pairWeb(value, name = "iPhone") {
+    return this.pairNative(value, name, "web");
+  }
   create(name, kind = "browser") {
     for (const [hash, s] of this.sessions)
       if (s.expires <= this.now()) this.sessions.delete(hash);
@@ -186,7 +202,7 @@ export class Sessions {
     if (
       [...this.sessions.values(), ...this.pendingRevocations.values()].filter(
         (s) => s.kind === kind,
-      ).length >= (kind === "native" ? 32 : 64)
+      ).length >= (durableKinds.has(kind) ? 32 : 64)
     )
       throw new Error(
         "Too many paired devices. Revoke an older device on the Mac.",
@@ -202,7 +218,8 @@ export class Sessions {
           .slice(0, 50) || "Phone",
       kind,
       expires:
-        this.now() + (kind === "native" ? nativeLifetime : browserLifetime),
+        this.now() + (durableKinds.has(kind) ? nativeLifetime : browserLifetime),
+      ...(kind === "web" ? { passkey: null } : {}),
     };
     this.sessions.set(hash, s);
     return { ...s, token };
@@ -222,7 +239,9 @@ export class Sessions {
     for (const [hash, s] of this.sessions)
       if (s.id === id) {
         this.sessions.delete(hash);
-        if (s.kind === "native") this.pendingRevocations.set(id, s);
+        this.unlocks.delete(hash);
+        this.challenges.delete(hash);
+        if (durableKinds.has(s.kind)) this.pendingRevocations.set(id, s);
       }
     if (!this.pendingRevocations.has(id)) return Promise.resolve();
     return this.persist().catch(() => {
@@ -236,8 +255,86 @@ export class Sessions {
     // its token stays absent from sessions and therefore cannot authenticate.
     return [...this.sessions.values(), ...this.pendingRevocations.values()]
       .filter((s) => s.expires > this.now())
-      .map(({ id, name, expires, kind }) => ({ id, name, expires, kind }));
+      .map(({ id, name, expires, kind, passkey }) => ({
+        id, name, expires, kind, ...(kind === "web" ? { passkey: !!passkey } : {}),
+      }));
   }
+
+  // ---- Web pairings: Face ID lock ----
+
+  /** A session that may use Palm now: any phone app or Mac session, or a web
+   * pairing with its passkey set up and unlocked recently. `touch` records use. */
+  authorized(token, touch = true) {
+    const s = this.get(token);
+    if (!s || s.kind !== "web") return s;
+    const hash = tokenHash(token);
+    const unlock = this.unlocks.get(hash);
+    const now = this.now();
+    if (!s.passkey || !unlock || now - unlock.last > webIdleLock || now - unlock.at > webUnlockLimit) {
+      this.unlocks.delete(hash);
+      return null;
+    }
+    if (touch) unlock.last = now;
+    return s;
+  }
+  /** Where a web pairing stands: needs its passkey, locked, or unlocked. */
+  webState(token) {
+    const s = this.get(token);
+    if (!s || s.kind !== "web") return null;
+    if (!s.passkey) return "setup";
+    return this.authorized(token, false) ? "unlocked" : "locked";
+  }
+  issueChallenge(token, purpose, value) {
+    this.challenges.set(tokenHash(token), { value, purpose, expires: this.now() + 120000 });
+    return value;
+  }
+  /** The challenge last issued to this pairing for `purpose`, used once. */
+  takeChallenge(token, purpose) {
+    const hash = tokenHash(token);
+    const challenge = this.challenges.get(hash);
+    this.challenges.delete(hash);
+    if (!challenge || challenge.purpose !== purpose || challenge.expires <= this.now())
+      throw new Error("That Face ID request expired. Try again.");
+    return challenge.value;
+  }
+  async setPasskey(token, passkey) {
+    const s = this.sessions.get(tokenHash(token));
+    if (!s || s.kind !== "web") throw new Error("Pair this phone again.");
+    if (!validPasskey(passkey)) throw new Error("The passkey could not be saved.");
+    const previous = s.passkey;
+    s.passkey = passkey;
+    try {
+      await this.persist();
+    } catch {
+      s.passkey = previous;
+      throw new Error("Palm could not save the passkey. Check storage on the Mac.");
+    }
+    this.unlock(token);
+  }
+  async updateSignCount(token, signCount) {
+    const s = this.sessions.get(tokenHash(token));
+    if (!s?.passkey || s.passkey.signCount === signCount) return;
+    s.passkey = { ...s.passkey, signCount };
+    await this.persist().catch(() => {});
+  }
+  unlock(token) {
+    const now = this.now();
+    this.unlocks.set(tokenHash(token), { at: now, last: now });
+  }
+  lock(token) {
+    this.unlocks.delete(tokenHash(token));
+  }
+}
+
+function validPasskey(p) {
+  return (
+    p && typeof p === "object" &&
+    typeof p.id === "string" && /^[A-Za-z0-9_-]{16,1400}$/.test(p.id) &&
+    typeof p.rpId === "string" && p.rpId.length > 0 && p.rpId.length <= 253 &&
+    Number.isSafeInteger(p.signCount) && p.signCount >= 0 &&
+    p.jwk && typeof p.jwk.x === "string" && typeof p.jwk.y === "string" &&
+    /^[A-Za-z0-9_-]{43}$/.test(p.jwk.x) && /^[A-Za-z0-9_-]{43}$/.test(p.jwk.y)
+  );
 }
 export function bearerToken(req) {
   if (!req.headers.authorization) return null;

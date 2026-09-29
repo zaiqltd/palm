@@ -1700,6 +1700,48 @@ final class PalmUITests: XCTestCase {
     snap(app, "demo-assistant-saved")
   }
 
+  /// Say the task, the agent starts it, asks to run the tests, and the Mac
+  /// (beside the chat) turns dark when they pass. The test host hears the line
+  /// set by scripts/ios-ui-tests.mjs --demo.
+  func testDemo7VoiceAgent() throws {
+    try demoOnly()
+    try demoSession("codex", "Fix the flaky checkout test")
+    try demoSession("claude", "Summarise yesterday's error logs")
+    let app = try launch()
+    tab(app, "Agents")
+    let new = app.buttons["agents.new"]
+    XCTAssertTrue(new.waitForExistence(timeout: 15))
+    sleep(2)
+    new.tap()
+    let mic = app.buttons["newtask.mic"]
+    XCTAssertTrue(mic.waitForExistence(timeout: 10))
+    sleep(1)
+    mic.tap()
+    let done = app.buttons["voice.done"]
+    XCTAssertTrue(done.waitForExistence(timeout: 10), "Listening")
+    sleep(3)
+    snap(app, "demo-voice-listening")
+    done.tap()
+    let message = app.textViews["newtask.message"].exists ? app.textViews["newtask.message"] : app.textFields["newtask.message"]
+    let heard = NSPredicate(format: "value CONTAINS %@", "dark mode")
+    expectation(for: heard, evaluatedWith: message)
+    waitForExpectations(timeout: 20)
+    sleep(2)
+    snap(app, "demo-voice-heard")
+    app.buttons["newtask.start"].tap()
+    let allow = app.buttons["approval.allow"]
+    XCTAssertTrue(allow.waitForExistence(timeout: 90), "The agent asks to run the tests")
+    sleep(1)
+    app.buttons["task.screen"].tap()
+    sleep(4)
+    snap(app, "demo-voice-approval")
+    allow.tap()
+    let passed = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "42 tests pass")).firstMatch
+    XCTAssertTrue(passed.waitForExistence(timeout: 90))
+    sleep(5)
+    snap(app, "demo-voice-done")
+  }
+
   func testDemo6Terminal() throws {
     try demoOnly()
     let app = try launch()
@@ -1884,6 +1926,47 @@ final class PalmUITests: XCTestCase {
     // Back upright.
     turn(landscape: false)
     pause(3.5)
+    mark("done")
+  }
+
+  /// The hype film's Mac beats, upright: open Notes from the Dock, type into
+  /// a note with the text framed above the keyboard, then paste what this
+  /// iPhone copied onto the Mac with the key bar's Paste.
+  func testRemote3Hype() throws {
+    try remoteOnly()
+    UIPasteboard.general.string = "Copied on my phone. Pasted on my Mac."
+    let app = try launch()
+    mark("launched")
+    turn(landscape: false)
+    pause(1)
+    tab(app, "Screen")
+    XCTAssertTrue(app.buttons["screen.desktop"].waitForExistence(timeout: 15))
+    mark("screen-list")
+    pause(2)
+    tapControl(app, "screen.desktop")
+    waitForPicture(app)
+    mark("live-portrait")
+    pause(2.5)
+    showAll(app)
+    pause(1.5)
+    tapMac(app, dockNotes.x, dockNotes.y, "dock-notes")
+    pause(3.5)
+    tapMac(app, notesNewNote.x, notesNewNote.y, "new-note")
+    pause(1.5)
+    // Into the note itself, so typing frames the text above the keyboard.
+    tapMac(app, 540.0 / 1440, 200.0 / 900, "note-body")
+    pause(1)
+    tapControl(app, "remote.keyboard")
+    pause(1.5)
+    typeSlowly(app, "Dinner on Friday at 8\n")
+    pause(1.2)
+    let paste = app.descendants(matching: .any)["keybar.paste"]
+    XCTAssertTrue(paste.waitForExistence(timeout: 5), "The key bar's Paste")
+    mark("tap keybar.paste \(Int(paste.frame.midX)) \(Int(paste.frame.midY))")
+    paste.tap()
+    pause(3)
+    hideKeyboard(app)
+    pause(2.5)
     mark("done")
   }
 

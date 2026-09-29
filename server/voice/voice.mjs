@@ -93,7 +93,8 @@ export class Voice {
     if (!["wav", "mp3", "flac"].includes(format)) throw new Error("That audio format is not supported.");
     const started = Date.now();
     let text;
-    if (this.synthetic) text = "find my notes";
+    // The test host hears one fixed line (a film's demo can set its own).
+    if (this.synthetic) text = process.env.PALM_SYNTHETIC_TRANSCRIPT || "find my notes";
     else {
       const d = await this.post("/audio/transcriptions", {
         model: voiceModels.transcribe,
