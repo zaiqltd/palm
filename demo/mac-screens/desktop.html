@@ -1,0 +1,208 @@
+<!doctype html>
+<!--
+  A sample Mac desktop for Palm's demo recordings (test host only). Rendered to
+  before.png and after.png by render.sh; the test host shows one of them as the
+  simulated Mac screen, and the demo agent swaps in after.png when it finishes.
+  Open with ?after for the state after the demo agent's change.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --menu: 26px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 800px; overflow: hidden; }
+  body {
+    font: 13px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    color: #e8e8ea;
+    background:
+      radial-gradient(90% 70% at 15% 10%, #3a4a6b 0%, transparent 60%),
+      radial-gradient(80% 80% at 90% 90%, #4b3a5c 0%, transparent 55%),
+      linear-gradient(160deg, #1d2433, #151821 55%, #1c1726);
+    position: relative;
+  }
+  .menubar {
+    position: absolute; inset: 0 0 auto 0; height: var(--menu);
+    background: rgba(20, 22, 28, 0.55); backdrop-filter: blur(20px);
+    display: flex; align-items: center; gap: 18px; padding: 0 14px; font-size: 13px;
+  }
+  .menubar b { font-weight: 700; }
+  .menubar .right { margin-left: auto; display: flex; gap: 16px; align-items: center; opacity: 0.95; }
+  .glyph { width: 14px; height: 14px; border-radius: 4px; background: #e8e8ea; opacity: 0.9; }
+  .battery { width: 24px; height: 11px; border: 1.5px solid #e8e8ea; border-radius: 3px; position: relative; }
+  .battery::after { content: ""; position: absolute; inset: 1.5px 5px 1.5px 1.5px; background: #e8e8ea; border-radius: 1px; }
+  .window {
+    position: absolute; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.14);
+  }
+  .titlebar { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 14px; font-size: 12.5px; }
+  .lights { display: flex; gap: 8px; margin-right: 10px; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  .lights i:nth-child(1) { background: #ff5f57; } .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+
+  /* Editor */
+  .editor { left: 36px; top: 58px; width: 700px; height: 610px; background: #1e1f24; }
+  .editor .titlebar { background: #26272d; color: #b9bac2; justify-content: flex-start; }
+  .editor .title { margin: 0 auto; transform: translateX(-30px); }
+  .editor .body { display: flex; height: calc(100% - 36px); }
+  .tree { width: 170px; background: #212228; padding: 12px 0; font-size: 12px; color: #a9aab3; }
+  .tree div { padding: 3px 14px; white-space: nowrap; }
+  .tree .dir { color: #cfd0d6; }
+  .tree .in { padding-left: 28px; }
+  .tree .in2 { padding-left: 42px; }
+  .tree .on { background: #33353d; color: #fff; }
+  .tree .mod { color: #e2c08d; }
+  .code { flex: 1; padding: 14px 0; font: 12.5px/1.62 "SF Mono", Menlo, monospace; color: #d5d6dc; position: relative; }
+  .tabs { position: absolute; top: 0; left: 0; right: 0; height: 0; }
+  .ln { display: flex; white-space: pre; }
+  .ln .n { width: 44px; text-align: right; padding-right: 16px; color: #5d5f69; }
+  .ln.add { background: rgba(64, 160, 90, 0.16); }
+  .ln.add .n { color: #6fbf85; }
+  .k { color: #c792ea; } .s { color: #c3e88d; } .f { color: #82aaff; } .t { color: #ffcb6b; } .c { color: #6b6e7a; } .p { color: #89ddff; } .a { color: #f78c6c; }
+  .status { position: absolute; bottom: 0; left: 0; right: 0; height: 24px; background: #26272d; color: #8d8f99; font-size: 11px; display: flex; align-items: center; gap: 16px; padding: 0 12px; }
+
+  /* Browser */
+  .browser { left: 560px; top: 150px; width: 660px; height: 520px; background: #fff; }
+  .browser .titlebar { background: #ececef; color: #333; height: 42px; }
+  .url { flex: 1; margin: 0 40px 0 10px; height: 26px; border-radius: 7px; background: #fff; border: 1px solid #d8d8dc; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #444; }
+  .page { height: calc(100% - 42px); padding: 30px 38px; font-size: 14px; }
+  .page nav { display: flex; align-items: center; gap: 22px; font-size: 13px; margin-bottom: 30px; }
+  .page nav .logo { font-weight: 700; font-size: 16px; margin-right: auto; letter-spacing: -0.01em; }
+  .page h1 { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; }
+  .page .sub { margin-top: 6px; font-size: 13.5px; }
+  .rows { margin-top: 24px; border-radius: 12px; overflow: hidden; }
+  .row { display: flex; align-items: center; padding: 15px 18px; }
+  .row + .row { border-top: 1px solid; }
+  .row .label { font-weight: 560; }
+  .row .hint { font-size: 12.5px; margin-top: 2px; }
+  .row .toggle { margin-left: auto; width: 42px; height: 25px; border-radius: 13px; position: relative; }
+  .row .toggle::after { content: ""; position: absolute; top: 2.5px; left: 2.5px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .row .toggle.on::after { left: 19.5px; }
+  .light .page { background: #fafafa; color: #151518; }
+  .light .page .sub, .light .row .hint, .light nav span { color: #6b6b73; }
+  .light .rows { background: #fff; border: 1px solid #e6e6ea; }
+  .light .row + .row { border-color: #ededf0; }
+  .light .toggle { background: #d9d9de; } .light .toggle.on { background: #1a1a1d; }
+  .dark .page { background: #141417; color: #f1f1f3; }
+  .dark .page .sub, .dark .row .hint, .dark nav span { color: #9a9aa3; }
+  .dark .rows { background: #1d1d21; border: 1px solid #2c2c32; }
+  .dark .row + .row { border-color: #2a2a30; }
+  .dark .toggle { background: #3a3a41; } .dark .toggle.on { background: #f1f1f3; }
+  .dark .toggle.on::after { background: #141417; }
+  .new { display: none; }
+  .after .new { display: flex; }
+
+  /* Dock */
+  .dock {
+    position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+    display: flex; gap: 10px; padding: 8px 10px; border-radius: 20px;
+    background: rgba(40, 42, 50, 0.45); backdrop-filter: blur(24px);
+    box-shadow: 0 0 0 0.5px rgba(255,255,255,0.18);
+  }
+  .dock i { width: 46px; height: 46px; border-radius: 11px; display: grid; place-items: center; font: 600 18px -apple-system, sans-serif; font-style: normal; color: #fff; position: relative; }
+  .dock i.run::after { content: ""; position: absolute; bottom: -6px; width: 4px; height: 4px; border-radius: 50%; background: #e8e8ea; }
+</style>
+</head>
+<body>
+  <div class="menubar">
+    <span class="glyph"></span><b>Code</b><span>File</span><span>Edit</span><span>Selection</span><span>View</span><span>Go</span><span>Window</span><span>Help</span>
+    <div class="right"><span>Tue 29 Sep</span><span>9:41</span><span class="battery"></span></div>
+  </div>
+
+  <div class="window editor">
+    <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><span class="title">Settings.tsx · acme-web</span></div>
+    <div class="body">
+      <div class="tree">
+        <div class="dir">ACME-WEB</div>
+        <div class="in dir">src</div>
+        <div class="in2 dir">components</div>
+        <div class="in2" style="padding-left:56px">Header.tsx</div>
+        <div class="in2 on" style="padding-left:56px" id="file">Settings.tsx</div>
+        <div class="in2" style="padding-left:56px">Toggle.tsx</div>
+        <div class="in2 dir">styles</div>
+        <div class="in2" style="padding-left:56px" id="css">theme.css</div>
+        <div class="in2">App.tsx</div>
+        <div class="in2">main.tsx</div>
+        <div class="in">tests</div>
+        <div class="in">package.json</div>
+        <div class="in">vite.config.ts</div>
+      </div>
+      <div class="code" id="code"></div>
+    </div>
+  </div>
+
+  <div class="window browser">
+    <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><div class="url">localhost:5173/settings</div></div>
+    <div class="page">
+      <nav><span class="logo">Acme</span><span>Projects</span><span>Team</span><span>Billing</span><span>Settings</span></nav>
+      <h1>Settings</h1>
+      <p class="sub">Choose how Acme looks and when it gets in touch.</p>
+      <div class="rows">
+        <div class="row"><div><div class="label">Email notifications</div><div class="hint">When someone mentions you</div></div><div class="toggle on"></div></div>
+        <div class="row new"><div><div class="label">Dark mode</div><div class="hint">Follows your system until you choose</div></div><div class="toggle on"></div></div>
+        <div class="row"><div><div class="label">Weekly summary</div><div class="hint">Every Monday at 8:00</div></div><div class="toggle"></div></div>
+        <div class="row"><div><div class="label">Compact tables</div><div class="hint">Fit more rows on screen</div></div><div class="toggle"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dock">
+    <i style="background:linear-gradient(#5aa8ff,#2f6fe0)">&#9636;</i>
+    <i class="run" style="background:linear-gradient(#3b3d45,#23242a)">&gt;_</i>
+    <i class="run" style="background:linear-gradient(#4c8dff,#7b5cff)">{ }</i>
+    <i class="run" style="background:linear-gradient(#f5f5f7,#d8d8de);color:#2a6df4">&#9678;</i>
+    <i style="background:linear-gradient(#ff7a59,#e0453a)">&#9993;</i>
+    <i style="background:linear-gradient(#ffd25a,#f4a51c)">&#9998;</i>
+    <i style="background:linear-gradient(#8e8e96,#5c5c64)">&#9881;</i>
+    <i class="run" style="background:linear-gradient(#2b2b30,#141417)">&#9995;</i>
+  </div>
+
+<script>
+const after = location.search.includes("after");
+document.body.classList.add(after ? "after" : "before");
+document.querySelector(".browser").classList.add(after ? "dark" : "light");
+if (after) { document.getElementById("file").classList.add("mod"); document.getElementById("css").classList.add("mod"); }
+const before = [
+  ['<span class="k">import</span> { <span class="t">Toggle</span> } <span class="k">from</span> <span class="s">"./Toggle"</span>;'],
+  ['<span class="k">import</span> { <span class="f">useSettings</span> } <span class="k">from</span> <span class="s">"../settings"</span>;'],
+  [''],
+  ['<span class="k">export function</span> <span class="f">Settings</span>() {'],
+  ['  <span class="k">const</span> { <span class="a">settings</span>, <span class="f">update</span> } = <span class="f">useSettings</span>();'],
+  [''],
+  ['  <span class="k">return</span> ('],
+  ['    <span class="p">&lt;</span><span class="t">section</span> <span class="a">className</span>=<span class="s">"settings"</span><span class="p">&gt;</span>'],
+  ['      <span class="p">&lt;</span><span class="t">h1</span><span class="p">&gt;</span>Settings<span class="p">&lt;/</span><span class="t">h1</span><span class="p">&gt;</span>'],
+  ['      <span class="p">&lt;</span><span class="t">Toggle</span>'],
+  ['        <span class="a">label</span>=<span class="s">"Email notifications"</span>'],
+  ['        <span class="a">checked</span>={<span class="a">settings</span>.email}'],
+  ['        <span class="a">onChange</span>={(<span class="a">on</span>) =&gt; <span class="f">update</span>({ email: <span class="a">on</span> })}'],
+  ['      <span class="p">/&gt;</span>'],
+];
+const added = [
+  ['      <span class="p">&lt;</span><span class="t">Toggle</span>', 1],
+  ['        <span class="a">label</span>=<span class="s">"Dark mode"</span>', 1],
+  ['        <span class="a">hint</span>=<span class="s">"Follows your system until you choose"</span>', 1],
+  ['        <span class="a">checked</span>={<span class="a">settings</span>.theme === <span class="s">"dark"</span>}', 1],
+  ['        <span class="a">onChange</span>={(<span class="a">on</span>) =&gt; <span class="f">setTheme</span>(<span class="a">on</span> ? <span class="s">"dark"</span> : <span class="s">"light"</span>)}', 1],
+  ['      <span class="p">/&gt;</span>', 1],
+];
+const rest = [
+  ['      <span class="p">&lt;</span><span class="t">Toggle</span>'],
+  ['        <span class="a">label</span>=<span class="s">"Weekly summary"</span>'],
+  ['        <span class="a">checked</span>={<span class="a">settings</span>.digest}'],
+  ['        <span class="a">onChange</span>={(<span class="a">on</span>) =&gt; <span class="f">update</span>({ digest: <span class="a">on</span> })}'],
+  ['      <span class="p">/&gt;</span>'],
+  ['    <span class="p">&lt;/</span><span class="t">section</span><span class="p">&gt;</span>'],
+  ['  );'],
+  ['}'],
+];
+const head = after
+  ? [before[0], ['<span class="k">import</span> { <span class="f">setTheme</span> } <span class="k">from</span> <span class="s">"../theme"</span>;', 1], ...before.slice(1)]
+  : before;
+const lines = [...head, ...(after ? added : []), ...rest];
+document.getElementById("code").innerHTML =
+  lines.map(([html, add], i) => `<div class="ln${add ? " add" : ""}"><span class="n">${i + 1}</span>${html}</div>`).join("") +
+  `<div class="status"><span>main${after ? "*" : ""}</span><span>TypeScript JSX</span><span style="margin-left:auto">Ln ${after ? 17 : 9}, Col 1</span></div>`;
+</script>
+</body>
+</html>

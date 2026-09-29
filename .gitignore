@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.local/
+build/
+test-results/
+.DS_Store
+ios/DerivedData/
+ios/*.xcarchive/
+ios/export/
+**/xcuserdata/
+vendor/WebRTC.xcframework/
+vendor/*.zip
+ios/Palm.xcodeproj/project.xcworkspace/

@@ -1,0 +1,32 @@
+{
+  "name": "palm-remote",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "start": "node server/index.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "native:build": "bash scripts/build-native.sh",
+    "package:mac": "node scripts/package-mac.mjs",
+    "install:mac": "node scripts/install-mac.mjs",
+    "test:ios-ui": "node scripts/ios-ui-tests.mjs",
+    "check:browser": "node tests/browser.mjs"
+  },
+  "dependencies": {
+    "@xterm/addon-serialize": "^0.14.0",
+    "@xterm/headless": "^6.0.0",
+    "lucide-react": "^0.468.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "prettier": "^3.9.8",
+    "vite": "^6.1.0"
+  }
+}

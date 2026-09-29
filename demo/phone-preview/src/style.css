@@ -1,0 +1,7 @@
+:root { color-scheme: dark; font-family: -apple-system, system-ui, sans-serif; }
+body { margin: 0; background: #161618; color: #f2f2f4; }
+main { padding: 28px 20px; max-width: 720px; margin: 0 auto; }
+h1 { font-size: 28px; margin: 0 0 12px; }
+.lede { color: #c7c7cc; line-height: 1.5; }
+.meta { color: #98989e; font-size: 14px; }
+img { max-width: 100%; border-radius: 16px; }

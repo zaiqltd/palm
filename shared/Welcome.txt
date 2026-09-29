@@ -1,0 +1,5 @@
+Welcome to Palm.
+
+This is the sample shared folder. Only files in the configured shared folder are available from your phone.
+
+To share a different folder, stop Palm and start it with PALM_SHARE_ROOT set to the folder you choose. Hidden files and paths that escape that folder are blocked.

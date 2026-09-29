@@ -1,0 +1,8 @@
+{
+  "name": "palm-phone-preview-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5199 --strictPort"
+  }
+}
