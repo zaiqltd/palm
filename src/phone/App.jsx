@@ -13,6 +13,7 @@ import { ScreenTab } from "./screens/ScreenTab.jsx";
 import { RemoteView } from "./remote/RemoteView.jsx";
 import { SCREENS, ROOTS } from "./screens/registry.jsx";
 import { WatchBanner, watch } from "./screens/watch.jsx";
+import { shared, useSharedBadge } from "./screens/shared.jsx";
 import "./phone.css";
 
 // [id, label, glyph, size]: the tab bar draws its glyphs at 23 pt.
@@ -59,12 +60,19 @@ function Unreachable() {
 }
 
 function TabBar({ tab }) {
+  // Something new from the Mac in More › Shared.
+  const badge = useSharedBadge();
   return (
     <nav className="tabbar glass" aria-label="Palm">
       {TABS.map(([id, label, glyph, pt]) => (
         <button key={id} type="button" className={cx(tab === id && "selected")} aria-label={label} aria-current={tab === id ? "page" : undefined} data-id={`tab.${id}`} onClick={() => navigate.tab(id)}>
           <span className="tab-glyph">
             <Symbol name={glyph} pt={pt} />
+            {id === "more" && badge > 0 && (
+              <span className="tab-badge" data-id="tab.more.badge">
+                {badge}
+              </span>
+            )}
           </span>
           <span className="tab-label">{label}</span>
         </button>
@@ -99,7 +107,11 @@ function Tabs() {
   useEffect(() => {
     connection.refresh().catch((err) => setLocalError(friendly(err)));
     watch.start();
-    return () => watch.stop();
+    shared.start();
+    return () => {
+      watch.stop();
+      shared.stop();
+    };
   }, []);
 
   const showRemote = () => {

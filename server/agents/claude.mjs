@@ -86,7 +86,7 @@ export class ClaudeAdapter {
     if (this.systemPrompt) args.push("--append-system-prompt", this.systemPrompt);
     if (this.mcp) {
       args.push("--mcp-config", JSON.stringify({ mcpServers: { palm: { type: "stdio", ...this.mcp } } }));
-      args.push("--allowedTools", "mcp__palm__screenshot", "mcp__palm__list_apps", "mcp__palm__wait", "mcp__palm__tell_user",
+      args.push("--allowedTools", "mcp__palm__screenshot", "mcp__palm__list_apps", "mcp__palm__wait", "mcp__palm__tell_user", "mcp__palm__share_to_phone",
         "mcp__palm__click", "mcp__palm__type_text", "mcp__palm__press_key", "mcp__palm__scroll", "mcp__palm__drag", "mcp__palm__open_app");
     }
     const child = spawn(executable, args, { cwd: this.task.cwd, env, stdio: ["pipe", "pipe", "pipe"] });
@@ -379,6 +379,7 @@ export function describeTool(name = "", input = {}) {
           list_apps: "List Mac apps",
           wait: "Wait",
           tell_user: "Note to you",
+          share_to_phone: "Shared to your phone",
         };
         const detail =
           tool === "click" ? `${input.double ? "Double-click" : input.button === "right" ? "Right-click" : "Click"} at ${Math.round(input.x)}, ${Math.round(input.y)}`
@@ -386,6 +387,7 @@ export function describeTool(name = "", input = {}) {
           : tool === "press_key" ? [...(input.modifiers || []), input.key].join("+")
           : tool === "open_app" ? short(input.name || input.target)
           : tool === "tell_user" ? short(input.message, 600)
+          : tool === "share_to_phone" ? short(input.title || input.path || input.text, 200)
           : tool === "wait" ? `${input.seconds}s`
           : "";
         return { title: titles[tool] || tool, detail };

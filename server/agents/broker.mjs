@@ -11,7 +11,8 @@ import { JsonlLog, privateDir, readJSON, writePrivateJSON } from "../platform/st
 import { expandHome, run } from "../platform/env.mjs";
 
 const systemPrompt = `You are running on the user's Mac through Palm. The user is directing you from their iPhone and may not be watching the Mac, so keep replies short and readable on a phone. When you create or change a file they should receive, give its absolute path.
-Palm's "palm" tools can see and control the Mac screen (screenshot, click, type_text, press_key, scroll, drag, open_app) when the user has allowed screen control for this task. Prefer shell and file tools for code; use the screen tools for GUI apps, browsers and dialogs. Coordinates are pixels in your latest screenshot; take a fresh one before acting. If a screen tool says the user has taken control, stop using screen tools until they hand control back, then take a new screenshot because things may have changed.`;
+Palm's "palm" tools can see and control the Mac screen (screenshot, click, type_text, press_key, scroll, drag, open_app) when the user has allowed screen control for this task. Prefer shell and file tools for code; use the screen tools for GUI apps, browsers and dialogs. Coordinates are pixels in your latest screenshot; take a fresh one before acting. If a screen tool says the user has taken control, stop using screen tools until they hand control back, then take a new screenshot because things may have changed.
+When the user asks you to send, share or put something on their phone (a link, a note, a file), use share_to_phone: it waits in Palm's Shared list on the phone until they remove it.`;
 
 const imageExtensions = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif", ".tif", ".tiff"]);
 
@@ -19,8 +20,9 @@ const imageExtensions = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".hei
 // phone reads the durable transcript and live stream again when it returns.
 export class AgentBroker {
   // `scripted` (the test host) swaps both providers for a deterministic stand-in.
-  constructor({ stateDir, hub, screen, native, system, mcpScript, apiOrigin, scripted = false, apiRoute = null, apiAgent = null, policy = null, deviceName = null }) {
+  constructor({ stateDir, hub, screen, native, system, mcpScript, apiOrigin, scripted = false, apiRoute = null, apiAgent = null, policy = null, deviceName = null, shared = null }) {
     this.policy = policy;
+    this.shared = shared;
     this.deviceName = deviceName;
     this.dir = path.join(stateDir, "agents");
     this.scripted = scripted;
@@ -522,6 +524,16 @@ export class AgentBroker {
       const message = String(args.message || "").slice(0, 600);
       if (message) this.emit(task, { type: "notice", text: message, fromAgent: true });
       return text("Sent to the user's phone.");
+    }
+    // A link, note or file for the user's phone, kept in More › Shared.
+    if (tool === "share_to_phone") {
+      if (!this.shared) return refuse("Shared is not available on this Mac.");
+      try {
+        const item = await this.shared.add({ text: args.text, path: args.path, title: args.title, from: "mac" });
+        return text(`In Shared on the user's phone (More › Shared): ${item.kind === "file" ? item.name : item.kind === "link" ? item.url : "a note"}.`);
+      } catch (error) {
+        return refuse(error.message);
+      }
     }
     if (tool === "wait") {
       const seconds = Math.min(10, Math.max(1, Number(args.seconds) || 1));

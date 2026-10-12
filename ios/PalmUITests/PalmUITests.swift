@@ -422,6 +422,79 @@ final class PalmUITests: XCTestCase {
     if cancel.exists { cancel.tap() }
   }
 
+  // MARK: Shared: what the Mac passes to the phone
+
+  func testSharedFromTheMacArrivesWithABadge() throws {
+    let app = try launch()
+    // Something the phone has already seen.
+    try postToHost("/api/local/shared", ["text": "https://example.com/specials", "title": "This week's specials"])
+    more(app, "Shared")
+    XCTAssertTrue(app.buttons["shared.link.0"].waitForExistence(timeout: 10))
+    // Tapping More again returns to its list; Shared is no longer in front.
+    tab(app, "More")
+    let row = app.buttons["more.shared"]
+    XCTAssertTrue(row.waitForExistence(timeout: 10))
+    tab(app, "Files")
+    // The Mac shares a note and a file while the phone is open. iOS does not
+    // expose a tab's badge to UI tests; the screenshot shows it, and the More
+    // row says the same count.
+    try postToHost("/api/local/shared", ["text": "Call the bank about the card at 15:00.\nReference 4471-22. Ask for the fraud desk."])
+    try postToHost("/api/local/shared", ["path": "~/Documents/notes.txt"])
+    sleep(3)
+    snap(app, "shared-badge")
+    tab(app, "More")
+    XCTAssertTrue(row.waitForExistence(timeout: 10))
+    XCTAssertTrue(app.staticTexts["2 new"].waitForExistence(timeout: 10), "More says what is new")
+    snap(app, "shared-more-row")
+    row.tap()
+    let file = app.buttons["shared.file.0"]
+    XCTAssertTrue(file.waitForExistence(timeout: 10), "Newest first")
+    XCTAssertTrue(app.buttons["shared.text.1"].exists)
+    XCTAssertTrue(app.buttons["shared.link.2"].exists)
+    XCTAssertTrue(app.staticTexts["This week's specials"].exists)
+    snap(app, "shared-list")
+
+    // A note opens in full, ready to copy.
+    app.buttons["shared.text.1"].tap()
+    let note = app.staticTexts["shared.note.text"]
+    XCTAssertTrue(note.waitForExistence(timeout: 10))
+    XCTAssertTrue(note.label.contains("fraud desk"))
+    snap(app, "shared-note")
+    app.buttons["shared.note.copy"].tap()
+    XCTAssertTrue(app.buttons["Copied"].waitForExistence(timeout: 5))
+    app.buttons["Done"].tap()
+
+    // A file comes to the phone, verified.
+    file.tap()
+    XCTAssertTrue(app.staticTexts["On this iPhone, verified"].waitForExistence(timeout: 15), "Download verified by SHA-256")
+    snap(app, "shared-file-saved")
+    app.buttons["Done"].tap()
+
+    // The phone adds a note of its own.
+    app.buttons["shared.add"].tap()
+    choose(app, "shared.add.note")
+    let text = app.textViews["shared.compose.text"]
+    XCTAssertTrue(text.waitForExistence(timeout: 5))
+    text.typeText("Pick up the parcel")
+    app.buttons["shared.compose.add"].tap()
+    XCTAssertTrue(app.staticTexts["Pick up the parcel"].waitForExistence(timeout: 10))
+    snap(app, "shared-added-from-phone")
+
+    // Removing it takes it off the list.
+    let mine = app.buttons["shared.text.0"]
+    mine.swipeLeft()
+    let remove = app.buttons["Remove"]
+    XCTAssertTrue(remove.waitForExistence(timeout: 5))
+    remove.tap()
+    XCTAssertTrue(app.staticTexts["Pick up the parcel"].waitForNonExistence(timeout: 10))
+
+    // Seen: back on More, nothing is new any more.
+    tab(app, "More")
+    XCTAssertTrue(row.waitForExistence(timeout: 10))
+    XCTAssertFalse(app.staticTexts["2 new"].exists, "Opening Shared marks it seen")
+    XCTAssertTrue(app.staticTexts["3"].exists, "The More row counts what is kept")
+  }
+
   // MARK: Mac tab: dev server preview, clipboard, controls
 
   func testDevServerPreviewOpensOnThePhone() throws {

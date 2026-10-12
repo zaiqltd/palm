@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+// palm-share: put a link, a note or a file from this Mac in Palm's Shared list
+// on the phone (More › Shared). It talks to the Palm host on this Mac only.
+//
+//   palm-share https://example.com          a link
+//   palm-share "call the bank at 3"         a note
+//   palm-share ~/Desktop/report.pdf a.png   files (the phone downloads them when tapped)
+//   pbpaste | palm-share -                  text from standard input
+//   palm-share --clipboard                  what the Mac's clipboard holds (text)
+//   palm-share --title "Quote" <...>        a name for the item
+//   palm-share --list                       what is in Shared now
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+const port = Number(process.env.PALM_PORT || 4318);
+const origin = `http://127.0.0.1:${port}`;
+
+function usage(code) {
+  const text = readFileSync(new URL(import.meta.url), "utf8")
+    .split("\n")
+    .filter((line) => line.startsWith("//   "))
+    .map((line) => line.slice(3))
+    .join("\n");
+  (code ? process.stderr : process.stdout).write(`Usage:\n${text}\n`);
+  process.exit(code);
+}
+
+async function call(route, data) {
+  let response;
+  try {
+    response = await fetch(origin + route, {
+      method: data ? "POST" : "GET",
+      headers: data ? { origin, "content-type": "application/json" } : { origin },
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  } catch {
+    throw new Error(
+      `Palm is not running on this Mac, or this command runs in a sandbox without local network access (nothing answered on port ${port}). Open Palm, or run palm-share outside the sandbox (in Codex, approve running it with network access).`,
+    );
+  }
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || `Palm refused it (HTTP ${response.status}).`);
+  return body;
+}
+
+/** This Mac's local date and time, e.g. 2026-10-11 14:05. */
+function when(iso) {
+  const d = new Date(iso);
+  const two = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`;
+}
+
+function describe(item) {
+  if (item.kind === "file") return `file ${item.name}`;
+  if (item.kind === "link") return `link ${item.url}`;
+  const first = item.text.split("\n")[0];
+  return `note "${first.length > 60 ? first.slice(0, 60) + "..." : first}"`;
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  let title;
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "-h" || arg === "--help") usage(0);
+    else if (arg === "-t" || arg === "--title") title = args[++i];
+    else if (arg === "-l" || arg === "--list") {
+      const { items } = await call("/api/local/shared");
+      if (!items.length) console.log("Shared is empty.");
+      for (const item of items) console.log(`${when(item.created)}  ${item.source === "mac" ? "Mac  " : "Phone"}  ${describe(item)}${item.title ? `  (${item.title})` : ""}`);
+      return;
+    } else if (arg === "-c" || arg === "--clipboard") rest.push({ text: execFileSync("/usr/bin/pbpaste", { encoding: "utf8" }) });
+    else if (arg === "-") rest.push({ text: readFileSync(0, "utf8") });
+    else rest.push(arg);
+  }
+  if (!rest.length) usage(1);
+
+  // Every argument an existing file: share each file. Anything else: one note or link.
+  const strings = rest.filter((a) => typeof a === "string");
+  const files = strings.filter((a) => existsSync(a));
+  const items =
+    strings.length && files.length === strings.length && rest.length === strings.length
+      ? files.map((file) => ({ path: path.resolve(file), title }))
+      : [{ text: rest.map((a) => (typeof a === "string" ? a : a.text)).join(" ").trim(), title }];
+  for (const item of items) {
+    const added = await call("/api/local/shared", item);
+    console.log(`Shared to your phone: ${describe(added)}`);
+  }
+}
+
+main().catch((error) => {
+  console.error(`palm-share: ${error.message}`);
+  process.exit(1);
+});

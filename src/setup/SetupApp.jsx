@@ -45,12 +45,17 @@ import {
   Eye,
   ChevronDown,
   Home,
+  Send,
+  Trash2,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { handShapes } from "../brand.js";
 import "../styles.css";
 
 const DEMO = new URLSearchParams(location.search).has("demo");
+// ?share=<link or text>&title=<name>: the Send to iPhone bookmark opened this
+// window with the page Chrome was showing (sent only when you press Send).
+const SHARE = new URLSearchParams(location.search);
 const demoApps = [
   {
     name: "Safari",
@@ -259,6 +264,105 @@ function Modal({ title, children, onClose }) {
     </div>
   );
 }
+/** The bookmark that sends Chrome's current tab: it opens this page's small
+ * Send window with the tab's address filled in. React will not render a
+ * javascript: link, so it is set on the element directly. */
+const BOOKMARKLET = `javascript:void window.open('${location.origin}/?share='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title),'palm-share','width=480,height=560')`;
+function BookmarkLink() {
+  const ref = useRef(null);
+  useEffect(() => ref.current?.setAttribute("href", BOOKMARKLET), []);
+  return (
+    <a ref={ref} className="bookmarklet" onClick={(e) => e.preventDefault()} title="Drag to the bookmarks bar">
+      Send to iPhone
+    </a>
+  );
+}
+
+/** Send to iPhone: a link or a note into Shared on the phone (More › Shared),
+ * with the latest few and a way to take one back. On the Mac itself only. */
+function SendToPhone({ initialText = "", initialTitle = "", standalone = false }) {
+  const [text, setText] = useState(initialText);
+  const [title] = useState(initialTitle);
+  const [items, setItems] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [failure, setFailure] = useState("");
+  const refresh = () => api("local/shared").then((r) => setItems(r.items.slice(0, 5)), () => {});
+  useEffect(() => {
+    refresh();
+  }, []);
+  async function send() {
+    setBusy(true);
+    try {
+      await api("local/shared", { text, title: text === initialText ? title : undefined });
+      setText("");
+      setFailure("");
+      setMessage("On your iPhone in More › Shared.");
+      refresh();
+      if (standalone) setTimeout(() => window.close(), 1200);
+    } catch (e) {
+      setFailure(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const label = (item) =>
+    item.title || (item.kind === "file" ? item.name : item.kind === "link" ? item.url.replace(/^https?:\/\//, "") : item.text.split("\n")[0]);
+  return (
+    <section className={"quick-card send-card" + (standalone ? " standalone" : "")}>
+      <div className="section-head">
+        <h3>Send to iPhone</h3>
+        <Send size={16} />
+      </div>
+      {title && text === initialText && <b className="send-title">{title}</b>}
+      <textarea
+        value={text}
+        placeholder="A link or a note"
+        aria-label="A link or a note"
+        autoFocus={standalone}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && text.trim()) send();
+        }}
+      />
+      <Button onClick={send} disabled={busy || !text.trim()}>
+        Send to iPhone <Send size={15} />
+      </Button>
+      {(failure || message) && <p className={failure ? "send-failure" : "send-done"}>{failure || message}</p>}
+      {!standalone && items.length > 0 && (
+        <ul className="send-list">
+          {items.map((item) => (
+            <li key={item.id}>
+              <span>{label(item)}</span>
+              <button
+                aria-label="Remove from Shared"
+                onClick={() => api("local/shared/remove", { id: item.id }).then(refresh, (e) => setFailure(e.message))}
+              >
+                <Trash2 size={13} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!standalone && (
+        <p>
+          Waits on your iPhone until you remove it. From Chrome, drag <BookmarkLink /> to the bookmarks bar; in Terminal,
+          palm-share with a link, text or a file.
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** The small window the bookmark opens. */
+function ShareWindow() {
+  return (
+    <main className="share-window">
+      <SendToPhone initialText={SHARE.get("share") || ""} initialTitle={SHARE.get("title") || ""} standalone />
+    </main>
+  );
+}
+
 function MacArt() {
   return (
     <div className="mac-art" aria-hidden="true">
@@ -872,6 +976,7 @@ function App() {
                       {local ? "Pair your iPhone" : "Connection details"}
                     </Button>
                   </section>
+                  {local && !demo && <SendToPhone />}
                   <section className="quick-card">
                     <div className="section-head">
                       <h3>Quick controls</h3>
@@ -1874,4 +1979,6 @@ function Control({
   );
 }
 
-export default App;
+export default function SetupPage() {
+  return SHARE.has("share") ? <ShareWindow /> : <App />;
+}

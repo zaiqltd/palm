@@ -689,6 +689,23 @@ button.row:disabled {
   white-space: nowrap;
 }
 
+/* The red count on a tab's glyph (SwiftUI .badge). */
+.tabbar .tab-badge {
+  position: absolute;
+  top: -1px;
+  left: calc(50% + 7px);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--red);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
 /* ---- Toasts and the root error ---- */
 .toast-layer {
   position: absolute;
@@ -1916,4 +1933,27 @@ button.row:disabled {
   align-items: center;
   gap: 6px;
   color: var(--accent);
+}
+
+/* Shared: a note in full, and a new note. */
+.shared-note {
+  padding: 4px 20px 16px;
+  font-size: 17px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.shared-compose {
+  width: 100%;
+  min-height: 220px;
+  padding: 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  font-size: 17px;
+  resize: vertical;
 }

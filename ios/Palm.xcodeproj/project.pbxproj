@@ -17,6 +17,7 @@
 		197F5A01815707A42C9533A4 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 904802CD48BBAC98CB3983DD /* SwiftTerm */; };
 		2128CFD7A946E8BC9252084C /* PalmSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E8ACC8EE0BF9D218D726104 /* PalmSettingsView.swift */; };
 		25C481267A00A23175B3C1BB /* PalmDeviceAcceptanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 372E0602E132D7B3D1EDF5FD /* PalmDeviceAcceptanceTests.swift */; };
+		26522024CDEC3470E50F82E8 /* PalmShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2EA3DFC97DD71FEB4E8C2C1 /* PalmShared.swift */; };
 		26BC5577921C2E8AF75071EE /* PalmConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD620D1C675079952FDACB8B /* PalmConnection.swift */; };
 		2D0B58861300CEBB79E8DA7A /* PalmWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4030B18A2B9F4D713ED3D7B9 /* PalmWatchView.swift */; };
 		2EEA80C78CC7A22EBB16D7D0 /* WebRTC.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B79288589F9FE9D8F3A4E88 /* WebRTC.xcframework */; };
@@ -44,6 +45,7 @@
 		80BD6D09715AF5F344FE4C9D /* PalmDownloadStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BE445001E66BFA35F759F17 /* PalmDownloadStoreTests.swift */; };
 		82E430430141E1AD9C408337 /* PalmTalkAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B3EA1E34114D0ED1423FB6 /* PalmTalkAudio.swift */; };
 		884D7B8C5CCAD4E2BFA93F23 /* PalmMoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F99BE79577090899E4C77F3 /* PalmMoreView.swift */; };
+		890153FBA715D81EEFAA6C6F /* PalmSharedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 321AE86D5DE10089069D59CD /* PalmSharedView.swift */; };
 		AEDCFF7CF9325B845C317E91 /* PalmMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0E6FE0990D98C260DDAB3F /* PalmMediaView.swift */; };
 		AFECF700C14E7436D32028D7 /* PalmNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45ABCC36677B42E81F6DCEF5 /* PalmNavigator.swift */; };
 		B14BC7FC5C20301777FE45AC /* PalmStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E6149E317F21B8C8DD6AB07 /* PalmStyle.swift */; };
@@ -102,6 +104,7 @@
 		2C0BC53E0FF15B043F0E9DE6 /* PalmCall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmCall.swift; sourceTree = "<group>"; };
 		2E6149E317F21B8C8DD6AB07 /* PalmStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmStyle.swift; sourceTree = "<group>"; };
 		313D9B56824A4AB3E138C8AE /* PalmViewportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmViewportTests.swift; sourceTree = "<group>"; };
+		321AE86D5DE10089069D59CD /* PalmSharedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmSharedView.swift; sourceTree = "<group>"; };
 		372E0602E132D7B3D1EDF5FD /* PalmDeviceAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmDeviceAcceptanceTests.swift; sourceTree = "<group>"; };
 		388F6D3EF99D529486B365BB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4030B18A2B9F4D713ED3D7B9 /* PalmWatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmWatchView.swift; sourceTree = "<group>"; };
@@ -134,6 +137,7 @@
 		9874E3CBCC6B2DDDC3AC4EFC /* PalmKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmKeychain.swift; sourceTree = "<group>"; };
 		9AF884FF3FEECF5977ACE37B /* PalmTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PalmTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BBB160F4213605BBC7A8667 /* PalmNativeIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmNativeIntegrationTests.swift; sourceTree = "<group>"; };
+		A2EA3DFC97DD71FEB4E8C2C1 /* PalmShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmShared.swift; sourceTree = "<group>"; };
 		A7B3EA1E34114D0ED1423FB6 /* PalmTalkAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmTalkAudio.swift; sourceTree = "<group>"; };
 		AA14A1C25261AB0B54534AD2 /* PalmUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmUITests.swift; sourceTree = "<group>"; };
 		AD38DD56E7B4A7B66C031810 /* PalmVoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmVoice.swift; sourceTree = "<group>"; };
@@ -244,6 +248,7 @@
 				FD756F656F09C7E6B2FEEF91 /* PalmRootView.swift */,
 				8D6C324841973BAA7C4E49CF /* PalmScreenAppsView.swift */,
 				8E8ACC8EE0BF9D218D726104 /* PalmSettingsView.swift */,
+				321AE86D5DE10089069D59CD /* PalmSharedView.swift */,
 				2E6149E317F21B8C8DD6AB07 /* PalmStyle.swift */,
 				59D96DB6254A9D32F52706DB /* PalmTaskView.swift */,
 				4D5C49370F970D5407829E88 /* PalmTerminalView.swift */,
@@ -274,6 +279,7 @@
 				9874E3CBCC6B2DDDC3AC4EFC /* PalmKeychain.swift */,
 				83C8295B70EF017A1AD40898 /* PalmModels.swift */,
 				63194CCF3535BA5B4512385B /* PalmProtocol.swift */,
+				A2EA3DFC97DD71FEB4E8C2C1 /* PalmShared.swift */,
 				A7B3EA1E34114D0ED1423FB6 /* PalmTalkAudio.swift */,
 				B026E46D92C5B4576E27101B /* PalmTimings.swift */,
 				1715AF179190DA0D295249B9 /* PalmToneAudioDevice.swift */,
@@ -480,6 +486,8 @@
 				55D0B1EC805D057D66935A21 /* PalmRootView.swift in Sources */,
 				C4B39D6646612F73092141D0 /* PalmScreenAppsView.swift in Sources */,
 				2128CFD7A946E8BC9252084C /* PalmSettingsView.swift in Sources */,
+				26522024CDEC3470E50F82E8 /* PalmShared.swift in Sources */,
+				890153FBA715D81EEFAA6C6F /* PalmSharedView.swift in Sources */,
 				B14BC7FC5C20301777FE45AC /* PalmStyle.swift in Sources */,
 				82E430430141E1AD9C408337 /* PalmTalkAudio.swift in Sources */,
 				7C8050BB9B0E3F2654277CFA /* PalmTaskView.swift in Sources */,

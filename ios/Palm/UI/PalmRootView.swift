@@ -13,6 +13,7 @@ struct PalmRootView: View {
   @State private var opening = false
   @State private var keyboardShowing = false
   @ObservedObject private var alerts = PalmWatchAlerts.shared
+  @ObservedObject private var shared = PalmSharedStore.shared
 
   private var error: String? { localError ?? connection.errorMessage }
 
@@ -38,6 +39,8 @@ struct PalmRootView: View {
           .tabItem { Label("Screen", systemImage: "macwindow") }.tag(PalmTab.screen)
           PalmMoreView(connection: connection, events: events, transfers: transfers, navigator: navigator)
             .tabItem { Label("More", systemImage: "ellipsis") }.tag(PalmTab.more)
+            // Something new from the Mac in More › Shared.
+            .badge(shared.unseen)
         }
       } else {
         PalmPairingView(connection: connection, incomingURL: pendingLink)
@@ -127,11 +130,14 @@ struct PalmRootView: View {
       events.switchComputer()
       PalmAssistantStore.shared.computerChanged(connection.currentDeviceId)
       PalmAgentWatch.shared.computerChanged(connection)
+      PalmSharedStore.shared.computerChanged(connection)
     }
+    .onChange(of: navigator.tab) { _, tab in shared.onMoreTab = tab == .more }
     .onChange(of: connection.isPaired) { _, paired in
       if !paired { showingRemote = false } else {
         pairingSheet = false
         PalmAgentWatch.shared.start(connection, events: events)
+        PalmSharedStore.shared.start(connection, events: events)
       }
     }
     .onAppear {
@@ -141,7 +147,11 @@ struct PalmRootView: View {
         navigator.tab == .agents
           && ((alert.palmTaskId != nil && alert.palmTaskId == navigator.agentTask) || navigator.watchSession == alert.id)
       }
-      if connection.isPaired { PalmAgentWatch.shared.start(connection, events: events) }
+      shared.onMoreTab = navigator.tab == .more
+      if connection.isPaired {
+        PalmAgentWatch.shared.start(connection, events: events)
+        PalmSharedStore.shared.start(connection, events: events)
+      }
     }
     .onOpenURL { url in
       // Files shared into Palm from other apps arrive as file URLs.

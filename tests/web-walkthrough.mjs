@@ -7,7 +7,7 @@
 import { webkit } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -194,6 +194,44 @@ try {
     await id("tab.more").click();
     await id("more.terminal").waitFor();
     await shot("tab-more");
+  });
+  await step("shared", async () => {
+    // The Mac passes a link, a note and a file while the phone is open: the
+    // live update puts a badge on More.
+    await id("tab.files").click();
+    await writeFile(path.join(home, "Desktop/Quote.pdf"), "%PDF-1.4 sample");
+    await api("local/shared", { text: "https://example.com/specials", title: "This week's specials" });
+    await api("local/shared", { text: "Call the bank about the card at 15:00.\nReference 4471-22. Ask for the fraud desk, not the branch." });
+    await api("local/shared", { path: path.join(home, "Desktop/Quote.pdf") });
+    await id("tab.more.badge").getByText("3").waitFor({ timeout: 10000 });
+    await id("tab.more").click();
+    await id("more.shared").getByText("3 new").waitFor();
+    await shot("more-shared-badge");
+    await id("more.shared").click();
+    await id("shared.file.0").waitFor();
+    await shot("shared-list");
+    await id("tab.more.badge").waitFor({ state: "detached" });
+    await id("shared.text.1").click();
+    await id("shared.note.text").getByText("fraud desk", { exact: false }).waitFor();
+    await shot("shared-note");
+    await id("shared.note.done").click();
+    await id("shared.add").click();
+    await id("shared.add.note").click();
+    await id("shared.compose.text").fill("Pick up the parcel");
+    await id("shared.compose.add").click();
+    await page.getByText("Pick up the parcel").waitFor();
+    await id("shared.file.1").click();
+    await id("files.saved").waitFor({ timeout: 15000 });
+    await shot("shared-file-saved");
+    await id("sheet.done").click();
+    // Shared stays on top of More while another tab is in front: what
+    // arrives then is still new, until More is in front again.
+    await id("tab.files").click();
+    await api("local/shared", { text: "One more thing" });
+    await id("tab.more.badge").getByText("1").waitFor({ timeout: 10000 });
+    await id("tab.more").click();
+    await id("tab.more.badge").waitFor({ state: "detached" });
+    await back();
   });
   await step("terminal", async () => {
     await id("more.terminal").click();

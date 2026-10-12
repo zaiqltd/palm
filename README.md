@@ -29,6 +29,7 @@ Everything below works both ways.
 - **Every agent on the Mac.** Claude Code, Codex and OpenCode sessions started anywhere on the Mac (a terminal, the desktop apps) are listed with their status: working, needs you, finished, error. Palm reads their files; it never drives an agent it did not start.
 - **Assistant.** Ask for what you need in plain words: "send me my latest PDF", "start Claude in my website folder", "show me the preview". What it cannot do itself it hands to an agent, then brings the result back to the phone.
 - **Files.** The whole Mac filesystem, newest first. Send photos and files to any folder, save any file to the iPhone, every transfer checked by SHA-256 on both ends.
+- **Shared.** Links, notes and files sent from the Mac wait in More › Shared until you remove them, with a count on More when something new arrives. Send them with `bin/palm-share <link, text or file>`, the Send to iPhone box on the Mac's setup page (or its bookmark for the browser's current tab), or by asking an agent Palm started. Files are downloaded with the same checks as Files.
 - **Terminal.** Real shells on the Mac, with the keys a phone keyboard lacks (Esc, Tab, Control, arrows). Shells survive leaving the app and Palm restarting.
 - **Previews.** Start a project's dev server and open it on the phone privately, with hot reload.
 - **Mac controls.** Lock, sleep, display off, keep awake, brightness, clipboard, camera and microphone (a WebRTC call with echo cancellation), restart and shut down.

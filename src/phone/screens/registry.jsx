@@ -5,6 +5,7 @@ import { FilesTab, FolderScreen } from "./files.jsx";
 import { MacScreen } from "./mac.jsx";
 import { MediaScreen } from "./media.jsx";
 import { ComputersScreen, MoreTab, PreferencesScreen, RouteModelsScreen, SettingsScreen, TimingsScreen } from "./more.jsx";
+import { SharedScreen } from "./shared.jsx";
 import { TerminalScreen } from "./terminal.jsx";
 
 export const ROOTS = {
@@ -16,6 +17,7 @@ export const ROOTS = {
 
 export const SCREENS = {
   folder: FolderScreen,
+  shared: SharedScreen,
   computers: ComputersScreen,
   terminal: TerminalScreen,
   mac: MacScreen,

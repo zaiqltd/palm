@@ -516,6 +516,7 @@ function describePalmTool(tool) {
       list_apps: "List Mac apps",
       wait: "Wait",
       tell_user: "Note to you",
+      share_to_phone: "Shared to your phone",
     }[tool] || tool
   );
 }
@@ -526,6 +527,7 @@ function palmDetail(tool, a = {}) {
   if (tool === "press_key") return [...(a.modifiers || []), a.key].join("+");
   if (tool === "open_app") return String(a.name || a.target || "");
   if (tool === "tell_user") return String(a.message || "").slice(0, 600);
+  if (tool === "share_to_phone") return String(a.title || a.path || a.text || "").slice(0, 200);
   return "";
 }
 

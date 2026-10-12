@@ -30,6 +30,7 @@ import { SystemControl } from "./system/system.mjs";
 import { ScreenControl } from "./agents/screen-control.mjs";
 import { AgentBroker } from "./agents/broker.mjs";
 import { WorkMemory } from "./memory/memory.mjs";
+import { SharedItems } from "./shared/shared.mjs";
 import { Assistant } from "./assistant/assistant.mjs";
 import { Conversations } from "./assistant/conversations.mjs";
 import { Voice } from "./voice/voice.mjs";
@@ -146,6 +147,12 @@ const screen = new ScreenControl({
       controller.ws.send(JSON.stringify({ event: "screenOwner", ...state }));
   },
 });
+// Links, notes and files passed from the Mac to the phone (and back).
+const shared = new SharedItems({
+  stateDir,
+  policy: fsApi.policy,
+  onChange: (change) => hub.publish("shared", { event: "shared.changed", ...change }),
+});
 const broker = new AgentBroker({
   stateDir,
   hub,
@@ -159,6 +166,7 @@ const broker = new AgentBroker({
   // The files a turn made reach the chat as cards; blocked files never do.
   policy: fsApi.policy,
   deviceName: () => computerName,
+  shared,
 });
 await broker.open();
 // Warm the slow lookups so the first assistant request is quick.
@@ -239,6 +247,7 @@ const protocol = {
     fullFilesystem: true,
     upload: true,
     clipboard: true,
+    shared: true,
     agents: true,
     terminal: true,
     devServers: true,
@@ -688,6 +697,29 @@ async function authenticatedApi(req, res, url, authenticated) {
   if (p === "/api/voice/transcribe" && m === "POST") return json(res, 200, await voice.transcribe(await body(req, 14_000_000)));
   if (p === "/api/voice/speak" && m === "POST") return await voice.speak((await body(req)).text, res);
   if (p === "/api/assistant/preview" && m === "POST") return json(res, 200, await assistant.previewFolder((await body(req)).cwd));
+  // ---- Shared: what the Mac passed to the phone, and the phone to the Mac ----
+  if (p === "/api/shared" && m === "GET") return json(res, 200, await shared.list());
+  if (p === "/api/shared/item" && m === "GET") return json(res, 200, await shared.get(String(url.searchParams.get("id") || "")));
+  if (p === "/api/shared" && m === "POST") {
+    const b = await body(req, 1048576);
+    // The Mac's clipboard straight into Shared: its text, or the files copied in Finder.
+    if (b.macClipboard === true) {
+      const clip = await native.request({ op: "clipboardRead" });
+      if (clip.files?.length) {
+        const added = [];
+        let refused = null;
+        for (const file of clip.files.slice(0, 20))
+          await shared.add({ path: file, from: "mac" }).then((item) => added.push(item), (error) => (refused ??= error));
+        if (!added.length) throw refused;
+        return json(res, 200, { items: added });
+      }
+      if (typeof clip.text === "string" && clip.text.trim()) return json(res, 200, { items: [await shared.add({ text: clip.text, from: "mac" })] });
+      throw new Error(clip.imagePNG ? "The Mac's clipboard holds an image. Use Mac › Clipboard to bring it to this phone." : "The Mac's clipboard is empty.");
+    }
+    return json(res, 200, { items: [await shared.add({ text: b.text, path: b.path, title: b.title, from: authenticated?.name || "Phone" })] });
+  }
+  if (p === "/api/shared/remove" && m === "POST") return json(res, 200, await shared.remove(String((await body(req)).id || "")));
+
   if (p === "/api/memory" && m === "GET") return json(res, 200, await memory.snapshot());
   if (p === "/api/memory/alias" && m === "POST") return json(res, 200, await memory.setAlias(await body(req)));
   if (p === "/api/memory/workspace" && m === "POST") return json(res, 200, await memory.setWorkspace(await body(req)));
@@ -863,6 +895,14 @@ const server = http.createServer(async (req, res) => {
       // except to OpenRouter.
       if (req.method === "POST" && url.pathname === "/api/local/voice-key")
         return json(res, 200, await voice.setKey((await body(req)).key));
+      // Shared from the Mac itself: the palm-share command and the setup page.
+      if (req.method === "GET" && url.pathname === "/api/local/shared") return json(res, 200, await shared.list());
+      if (req.method === "POST" && url.pathname === "/api/local/shared") {
+        const b = await body(req, 1048576);
+        return json(res, 200, await shared.add({ text: b.text, path: b.path, title: b.title, from: "mac" }));
+      }
+      if (req.method === "POST" && url.pathname === "/api/local/shared/remove")
+        return json(res, 200, await shared.remove(String((await body(req)).id || "")));
       if (req.method === "POST" && url.pathname === "/api/local/pair-code") {
         const code = sessions.rotate();
         return json(res, 200, {
@@ -1289,7 +1329,7 @@ async function handleEvent(client, message) {
     case "unsubscribe": {
       const topics = Array.isArray(message.topics) ? message.topics : [message.topic];
       for (const topic of topics.slice(0, 32)) {
-        if (typeof topic !== "string" || !/^(tasks|task:[\w-]{8,64}|terminals|dev|dev:[a-f0-9]{10}|files|system|screen|watch|assistant)$/.test(topic)) continue;
+        if (typeof topic !== "string" || !/^(tasks|task:[\w-]{8,64}|terminals|dev|dev:[a-f0-9]{10}|files|system|screen|watch|assistant|shared)$/.test(topic)) continue;
         if (message.op === "subscribe") client.topics.add(topic);
         else client.topics.delete(topic);
         if (message.op === "subscribe" && topic.startsWith("dev:")) {

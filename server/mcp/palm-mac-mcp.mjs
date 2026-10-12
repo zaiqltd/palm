@@ -121,6 +121,21 @@ const tools = [
     },
     annotations: { readOnlyHint: true, title: "Tell the user" },
   },
+  {
+    name: "share_to_phone",
+    description:
+      "Put a link, a note or a file from this Mac in Palm's Shared list on the user's phone, where it stays until they remove it. Give text (a single web address becomes a link) or the absolute path of a file. Use it when the user asks to send something to their phone.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        text: { type: "string", maxLength: 100000 },
+        path: { type: "string", description: "Absolute path of a file on this Mac." },
+        title: { type: "string", maxLength: 200 },
+      },
+      additionalProperties: false,
+    },
+    annotations: { title: "Share to the phone" },
+  },
 ];
 
 function write(message) {

@@ -1,8 +1,8 @@
 // The More tab (PalmMoreView) and the screens under it that are not their
-// own tabs: Preferences (with the paid agent route), Timings, Pairing and
+// own tabs: Shared (in shared.jsx), Preferences (with the paid agent route), Timings, Pairing and
 // settings, Computers.
 import React, { useEffect, useState } from "react";
-import { Camera, Check, KeyRound, Laptop, MonitorSmartphone, Plus, Settings, SlidersHorizontal, SquareTerminal, Timer, Trash2, CircleDot, Hand, LogOut, RotateCw, CircleCheck } from "lucide-react";
+import { Camera, Check, Inbox, KeyRound, Laptop, MonitorSmartphone, Plus, Settings, SlidersHorizontal, SquareTerminal, Timer, Trash2, CircleDot, Hand, LogOut, RotateCw, CircleCheck } from "lucide-react";
 import { access, friendly, get, post } from "../core/api.js";
 import { connection } from "../core/connection.js";
 import { displayPath } from "../core/format.js";
@@ -12,6 +12,7 @@ import { useStore } from "../core/store.js";
 import { TIMING_KINDS, timings } from "../core/timings.js";
 import { Icon, List, NavBar, BackButton, PickerRow, Row, SearchField, Section, Spinner, ToggleRow, useDialog, useToast } from "../ui/kit.jsx";
 import { deviceSubtitle } from "./common.jsx";
+import { useSharedSummary } from "./shared.jsx";
 
 /** A pushed screen's inline title bar with the back button. */
 export function PushedBar({ title, trailing, children }) {
@@ -24,11 +25,15 @@ export function PushedBar({ title, trailing, children }) {
 
 export function MoreTab() {
   const s = useStore(connection.store, (s) => ({ hostStatus: s.hostStatus, connectionState: s.connectionState }));
+  const sharedSummary = useSharedSummary();
   return (
     <div className="stack-screen">
       <NavBar title="More" subtitle={deviceSubtitle(s)} />
       <div className="scroll">
         <List>
+          <Section>
+            <Row icon={Inbox} title="Shared" value={sharedSummary} chevron onClick={() => navigate.push("shared")} id="more.shared" />
+          </Section>
           <Section>
             <Row icon={MonitorSmartphone} title="Computers" value="1" chevron onClick={() => navigate.push("computers")} id="more.computers" />
           </Section>

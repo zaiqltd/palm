@@ -1,16 +1,33 @@
 import SwiftUI
 
-/// Everything that is not a daily destination: the terminal, the Mac's
-/// controls, what Palm remembers and settings.
+/// Everything that is not a daily destination: Shared (what the Mac passed
+/// to this phone), the terminal, the Mac's controls, what Palm remembers and
+/// settings.
 struct PalmMoreView: View {
   @ObservedObject var connection: PalmConnection
   @ObservedObject var events: PalmEvents
   @ObservedObject var transfers: PalmTransfers
   @ObservedObject var navigator: PalmNavigator
+  @ObservedObject private var shared = PalmSharedStore.shared
 
   var body: some View {
     NavigationStack {
       List {
+        Section {
+          NavigationLink { PalmSharedView(connection: connection, transfers: transfers) } label: {
+            LabeledContent {
+              if shared.unseen > 0 {
+                Text("\(shared.unseen) new").foregroundStyle(.white)
+              } else {
+                Text(shared.items.isEmpty ? "" : "\(shared.items.count)")
+              }
+            } label: {
+              Label("Shared", systemImage: "tray")
+            }
+          }
+          .accessibilityIdentifier("more.shared")
+        }
+        .listRowBackground(PalmStyle.panel)
         Section {
           NavigationLink { PalmComputersView(connection: connection, navigator: navigator) } label: {
             LabeledContent {
